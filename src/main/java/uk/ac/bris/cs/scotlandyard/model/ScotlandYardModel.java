@@ -30,6 +30,7 @@ public class ScotlandYardModel implements ScotlandYardGame {
 	private Graph<Integer, Transport> graph;
 	private List<ScotlandYardPlayer> players;
 	private Integer currentPlayer;
+	private Integer currentRound;
 	private Integer prevMrXLocation;
 
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
@@ -119,6 +120,7 @@ public class ScotlandYardModel implements ScotlandYardGame {
 		}
 		this.currentPlayer = 0;
 		this.prevMrXLocation = 0;
+		this.currentRound = 0;
 	}
 
 	@Override
@@ -156,8 +158,8 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public Set<Colour> getWinningPlayers() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		// TODO implement this properly
+		return Collections.unmodifiableSet(new HashSet<Colour>());
 	}
 
 	@Override
@@ -185,8 +187,8 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public boolean isGameOver() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		// TODO implement this properly
+		return false;
 	}
 
 	@Override
@@ -196,8 +198,7 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public int getCurrentRound() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		return this.currentRound;
 	}
 
 	@Override
