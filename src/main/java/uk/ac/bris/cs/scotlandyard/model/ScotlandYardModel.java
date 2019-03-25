@@ -7,7 +7,6 @@ import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.Objects.requireNonNull;
-import static uk.ac.bris.cs.scotlandyard.model.Colour.BLACK;
 import static uk.ac.bris.cs.scotlandyard.model.Ticket.DOUBLE;
 import static uk.ac.bris.cs.scotlandyard.model.Ticket.SECRET;
 import static uk.ac.bris.cs.scotlandyard.model.Ticket.BUS;
@@ -25,18 +24,17 @@ import uk.ac.bris.cs.gamekit.graph.Edge;
 import uk.ac.bris.cs.gamekit.graph.Graph;
 import uk.ac.bris.cs.gamekit.graph.ImmutableGraph;
 import uk.ac.bris.cs.gamekit.graph.Graph;
-
 // TODO implement all methods and pass all tests
 public class ScotlandYardModel implements ScotlandYardGame {
 	private List<Boolean> rounds;
 	private Graph<Integer, Transport> graph;
 	private List<ScotlandYardPlayer> players;
+	private Integer currentPlayer;
+	private Integer prevMrXLocation;
 
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
 			PlayerConfiguration... restOfTheDetectives) {
-		// TODO
-
 		// testEmptyRoundsShouldThrow
 		if (rounds.isEmpty()) {
 			throw new IllegalArgumentException("Empty rounds");
@@ -58,14 +56,14 @@ public class ScotlandYardModel implements ScotlandYardGame {
 		}
 
 		ArrayList<PlayerConfiguration> configurations = new ArrayList<>();
+		// testNullMrXShouldThrow
+		configurations.add(requireNonNull(mrX));
+		// testNullDetectiveShouldThrow
+		configurations.add(requireNonNull(firstDetective));
 		for (PlayerConfiguration config : restOfTheDetectives){
 			// testAnyNullDetectiveShouldThrow
 			configurations.add(requireNonNull(config));
 		}
-		// testNullDetectiveShouldThrow
-		configurations.add(0, requireNonNull(firstDetective));
-		// testNullMrXShouldThrow
-		configurations.add(0, requireNonNull(mrX));
 
 		Set<Integer> locations = new HashSet<>();
 		Set<Colour> colours = new HashSet<>();
@@ -112,10 +110,14 @@ public class ScotlandYardModel implements ScotlandYardGame {
 					throw new IllegalArgumentException("Detective has SECRET");
 				}
 			}
-
-			// Put PlayerConfiguration into ScotlandYardPlayer so that it is mutable
-			// this.players.add(new ScotlandYardPlayer(config.player, config.colour, config.location, config.tickets));
 		}
+
+		// Put PlayerConfiguration into ScotlandYardPlayer so that it is mutable
+		this.players = new ArrayList<ScotlandYardPlayer>();
+		for (PlayerConfiguration config : configurations) {
+			this.players.add(new ScotlandYardPlayer(config.player, config.colour, config.location, config.tickets));
+		}
+		this.currentPlayer = 0;
 	}
 
 	@Override
@@ -144,8 +146,11 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public List<Colour> getPlayers() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		List<Colour> colours = new ArrayList<Colour>();
+		for (ScotlandYardPlayer player : this.players){
+			colours.add(player.colour());
+		}
+		return Collections.unmodifiableList(colours);
 	}
 
 	@Override
@@ -162,8 +167,12 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public Optional<Integer> getPlayerTickets(Colour colour, Ticket ticket) {
-		// TODO
-		throw new RuntimeException("Implement me");
+		for (ScotlandYardPlayer player : this.players){
+			if (player.colour() == colour){
+				return Optional.of(player.tickets().get(ticket));
+			}
+		}
+		return Optional.empty();
 	}
 
 	@Override
@@ -174,8 +183,7 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public Colour getCurrentPlayer() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		return this.players.get(this.currentPlayer).colour();
 	}
 
 	@Override
@@ -186,14 +194,12 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public List<Boolean> getRounds() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		return Collections.unmodifiableList(this.rounds);
 	}
 
 	@Override
 	public Graph<Integer, Transport> getGraph() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		return new ImmutableGraph<Integer, Transport>(this.graph);
 	}
 
 }
