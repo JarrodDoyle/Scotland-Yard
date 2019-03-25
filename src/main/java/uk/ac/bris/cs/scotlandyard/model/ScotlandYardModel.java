@@ -118,6 +118,7 @@ public class ScotlandYardModel implements ScotlandYardGame {
 			this.players.add(new ScotlandYardPlayer(config.player, config.colour, config.location, config.tickets));
 		}
 		this.currentPlayer = 0;
+		this.prevMrXLocation = 0;
 	}
 
 	@Override
@@ -161,8 +162,15 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public Optional<Integer> getPlayerLocation(Colour colour) {
-		// TODO
-		throw new RuntimeException("Implement me");
+		if (!colour.isDetective()){
+			return Optional.of(this.prevMrXLocation);
+		}
+		for (ScotlandYardPlayer player : this.players){
+			if (player.colour() == colour){
+				return Optional.of(player.location());
+			}
+		}
+		return Optional.empty();
 	}
 
 	@Override
