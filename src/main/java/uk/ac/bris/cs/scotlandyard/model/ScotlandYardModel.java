@@ -10,6 +10,9 @@ import static java.util.Objects.requireNonNull;
 import static uk.ac.bris.cs.scotlandyard.model.Colour.BLACK;
 import static uk.ac.bris.cs.scotlandyard.model.Ticket.DOUBLE;
 import static uk.ac.bris.cs.scotlandyard.model.Ticket.SECRET;
+import static uk.ac.bris.cs.scotlandyard.model.Ticket.BUS;
+import static uk.ac.bris.cs.scotlandyard.model.Ticket.TAXI;
+import static uk.ac.bris.cs.scotlandyard.model.Ticket.UNDERGROUND;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,7 +30,7 @@ import uk.ac.bris.cs.gamekit.graph.Graph;
 public class ScotlandYardModel implements ScotlandYardGame {
 	private List<Boolean> rounds;
 	private Graph<Integer, Transport> graph;
-	private PlayerConfiguration mrX;
+	private List<ScotlandYardPlayer> players;
 
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
@@ -80,6 +83,38 @@ public class ScotlandYardModel implements ScotlandYardGame {
 				throw new IllegalArgumentException("Duplicate player colour");
 			}
 			colours.add(config.colour);
+
+			// testDetectiveMissingAnyTicketsShouldThrow
+			// testMrXMissingAnyTicketsShouldThrow
+			if (config.tickets.get(BUS) == null) {
+				throw new IllegalArgumentException("Player missing BUS ticket");
+			}
+			if (config.tickets.get(DOUBLE) == null) {
+				throw new IllegalArgumentException("Player missing DOUBLE ticket");
+			}
+			if (config.tickets.get(SECRET) == null) {
+				throw new IllegalArgumentException("Player missing SECRET ticket");
+			}
+			if (config.tickets.get(TAXI) == null) {
+				throw new IllegalArgumentException("Player missing TAXI ticket");
+			}
+			if (config.tickets.get(UNDERGROUND) == null) {
+				throw new IllegalArgumentException("Player missing UNDERGROUND ticket");
+			}
+
+			if (config.colour.isDetective()) {
+				// testDetectiveHaveDoubleTicketShouldThrow
+				if (config.tickets.get(DOUBLE) > 0){
+					throw new IllegalArgumentException("Detective has DOUBLE");
+				}
+				// testDetectiveHaveSecretTicketShouldThrow
+				if (config.tickets.get(SECRET) > 0){
+					throw new IllegalArgumentException("Detective has SECRET");
+				}
+			}
+
+			// Put PlayerConfiguration into ScotlandYardPlayer so that it is mutable
+			// this.players.add(new ScotlandYardPlayer(config.player, config.colour, config.location, config.tickets));
 		}
 	}
 
