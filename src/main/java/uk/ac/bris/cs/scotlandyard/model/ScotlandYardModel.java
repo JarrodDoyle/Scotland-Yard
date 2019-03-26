@@ -24,14 +24,16 @@ import uk.ac.bris.cs.gamekit.graph.Edge;
 import uk.ac.bris.cs.gamekit.graph.Graph;
 import uk.ac.bris.cs.gamekit.graph.ImmutableGraph;
 import uk.ac.bris.cs.gamekit.graph.Graph;
+
 // TODO implement all methods and pass all tests
-public class ScotlandYardModel implements ScotlandYardGame {
+public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 	private List<Boolean> rounds;
 	private Graph<Integer, Transport> graph;
 	private List<ScotlandYardPlayer> players;
 	private Integer currentPlayer;
 	private Integer currentRound;
 	private Integer prevMrXLocation;
+	private Set<Move> moves;
 
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
@@ -123,6 +125,30 @@ public class ScotlandYardModel implements ScotlandYardGame {
 		this.currentRound = 0;
 	}
 
+	private Set<Move> validMove(Colour colour) {
+		HashSet<Move> moves = new HashSet<Move>();
+		moves.add(new PassMove(colour));
+		return moves;
+	}
+
+	@Override
+	public void startRotate() {
+		ScotlandYardPlayer currentPlayer = this.players.get(this.currentPlayer);
+		this.moves = validMove(currentPlayer.colour());
+		currentPlayer.player().makeMove(this, currentPlayer.location(), this.moves, this);
+	}
+
+	@Override
+	public void accept(Move m){
+		// testCallbackIsNotNull
+		// testCallbackWithNullWillThrow
+		requireNonNull(m);
+		// testCallbackWithIllegalMoveNotInGivenMovesWillThrow
+		if (!this.moves.contains(m)){
+			throw new IllegalArgumentException("Move not in MOVES");
+		}
+	}
+
 	@Override
 	public void registerSpectator(Spectator spectator) {
 		// TODO
@@ -136,12 +162,6 @@ public class ScotlandYardModel implements ScotlandYardGame {
 	}
 
 	@Override
-	public void startRotate() {
-		// TODO
-		throw new RuntimeException("Implement me");
-	}
-
-	@Override
 	public Collection<Spectator> getSpectators() {
 		// TODO
 		throw new RuntimeException("Implement me");
@@ -149,10 +169,13 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public List<Colour> getPlayers() {
+		// testGetPlayersMatchesSupplied
+		// testGetPlayersStartsWithBlack
 		List<Colour> colours = new ArrayList<Colour>();
 		for (ScotlandYardPlayer player : this.players){
 			colours.add(player.colour());
 		}
+		// testGetPlayersIsImmutable
 		return Collections.unmodifiableList(colours);
 	}
 
@@ -164,24 +187,29 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public Optional<Integer> getPlayerLocation(Colour colour) {
+		// testGetPlayerLocationConcealsMrXLocationInitially
 		if (!colour.isDetective()){
 			return Optional.of(this.prevMrXLocation);
 		}
+		// testGetDetectiveLocationMatchesSupplied
 		for (ScotlandYardPlayer player : this.players){
 			if (player.colour() == colour){
 				return Optional.of(player.location());
 			}
 		}
+		// testGetPlayerLocationForNonExistentPlayerIsEmpty
 		return Optional.empty();
 	}
 
 	@Override
 	public Optional<Integer> getPlayerTickets(Colour colour, Ticket ticket) {
+		// testGetPlayerTicketsMatchesSupplied
 		for (ScotlandYardPlayer player : this.players){
 			if (player.colour() == colour){
 				return Optional.of(player.tickets().get(ticket));
 			}
 		}
+		// testGetPlayerTicketsForNonExistentPlayerIsEmpty
 		return Optional.empty();
 	}
 
@@ -193,21 +221,27 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public Colour getCurrentPlayer() {
+		// testGetPlayerIsMrXInitially
 		return this.players.get(this.currentPlayer).colour();
 	}
 
 	@Override
 	public int getCurrentRound() {
+		// testGetRoundIsNOT_STARTEDInitially
 		return this.currentRound;
 	}
 
 	@Override
 	public List<Boolean> getRounds() {
+		// testGetRoundsIsImmutable
+		// testGetRoundsMatchesSupplied
 		return Collections.unmodifiableList(this.rounds);
 	}
 
 	@Override
 	public Graph<Integer, Transport> getGraph() {
+		// testGetGraphIsImmutable
+		// testGetGraphMatchesSupplied
 		return new ImmutableGraph<Integer, Transport>(this.graph);
 	}
 
