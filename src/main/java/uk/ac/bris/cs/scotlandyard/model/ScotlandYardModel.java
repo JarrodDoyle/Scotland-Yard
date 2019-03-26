@@ -125,17 +125,88 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		this.currentRound = 0;
 	}
 
-	private Set<Move> validMove(Colour colour) {
+	private Boolean locationOccupiedByDetective(Integer location) {
+		for (ScotlandYardPlayer player : this.players) {
+			if (player.location() == location && player.colour().isDetective()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private Set<Move> doubleMoves(Colour colour, Integer location, Ticket prevTicket, Integer bus, Integer taxi, Integer underground, Integer secret) {
 		HashSet<Move> moves = new HashSet<Move>();
-		moves.add(new PassMove(colour));
+		if (!colour.isDetective() && getPlayerTickets(colour, DOUBLE).get() > 0) {
+			Collection<Edge<Integer,Transport>> edges = this.graph.getEdgesFrom(this.graph.getNode(location));
+			for (Edge<Integer,Transport> edge : edges) {
+				Transport transport = edge.data();
+				Integer destination = edge.destination().value();
+				if (!locationOccupiedByDetective(destination)) {
+					if (transport == Transport.BUS && bus > 0) {
+						moves.add(new DoubleMove(colour, prevTicket, location, BUS, destination));
+					}
+					else if (transport == Transport.TAXI && taxi > 0) {
+						moves.add(new DoubleMove(colour, prevTicket, location, TAXI, destination));
+					}
+					else if (transport == Transport.UNDERGROUND && underground > 0) {
+						moves.add(new DoubleMove(colour, prevTicket, location, UNDERGROUND, destination));
+					}
+
+					if (secret > 0) {
+						moves.add(new DoubleMove(colour, prevTicket, location, SECRET, destination));
+					}
+				}
+			}
+		}
+		return moves;
+	}
+
+	private Set<Move> validMoves(Colour colour) {
+		HashSet<Move> moves = new HashSet<Move>();
+		Integer location = this.players.get(this.currentPlayer).location();
+		Collection<Edge<Integer,Transport>> edges = this.graph.getEdgesFrom(this.graph.getNode(location));
+		Integer bus = getPlayerTickets(colour, BUS).get();
+		Integer taxi = getPlayerTickets(colour, TAXI).get();
+		Integer underground = getPlayerTickets(colour, UNDERGROUND).get();
+		Integer secret = getPlayerTickets(colour, SECRET).get();
+		for (Edge<Integer,Transport> edge : edges) {
+			Transport transport = edge.data();
+			Integer destination = edge.destination().value();
+			if (!locationOccupiedByDetective(destination)) {
+				if (transport == Transport.BUS && bus > 0) {
+					moves.add(new TicketMove(colour, BUS, destination));
+					moves.addAll(doubleMoves(colour, destination, BUS, bus - 1, taxi, underground, secret));
+				}
+				else if (transport == Transport.TAXI && taxi > 0) {
+					moves.add(new TicketMove(colour, TAXI, destination));
+					moves.addAll(doubleMoves(colour, destination, TAXI, bus, taxi - 1, underground, secret));
+				}
+				else if (transport == Transport.UNDERGROUND && underground > 0) {
+					moves.add(new TicketMove(colour, UNDERGROUND, destination));
+					moves.addAll(doubleMoves(colour, destination, UNDERGROUND, bus, taxi, underground - 1, secret));
+				}
+
+				if (secret > 0) {
+					moves.add(new TicketMove(colour, SECRET, destination));
+					moves.addAll(doubleMoves(colour, destination, SECRET, bus, taxi, underground, secret - 1));
+				}
+			}
+		}
+		if (moves.isEmpty()){
+			moves.add(new PassMove(colour));
+		}
 		return moves;
 	}
 
 	@Override
 	public void startRotate() {
-		ScotlandYardPlayer currentPlayer = this.players.get(this.currentPlayer);
-		this.moves = validMove(currentPlayer.colour());
-		currentPlayer.player().makeMove(this, currentPlayer.location(), this.moves, this);
+		this.currentPlayer = 0;
+		for (ScotlandYardPlayer x : this.players) {
+			Colour player = x.colour();
+			this.moves = validMoves(player);
+			x.player().makeMove(this, x.location(), this.moves, this);
+			this.currentPlayer += 1;
+		}
 	}
 
 	@Override
