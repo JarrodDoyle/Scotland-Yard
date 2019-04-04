@@ -35,7 +35,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	private Integer prevMrXLocation;
 	private Set<Move> moves;
 	private Set<Colour> winners;
-	private Boolean mrXStuck;
+	private List<Spectator> spectators;
 
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
@@ -126,6 +126,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		this.prevMrXLocation = 0;
 		this.currentRound = 0;
 		this.winners = new HashSet<Colour>();
+		this.spectators = new ArrayList<Spectator>();
 	}
 
 	private Boolean locationOccupiedByDetective(Integer location) {
@@ -275,20 +276,30 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public void registerSpectator(Spectator spectator) {
-		// TODO
-		throw new RuntimeException("Implement me");
+		if (this.spectators.contains(spectator)) {
+			throw new IllegalArgumentException("Spectators already contains SPECTATOR");
+		}
+		// testRegisterNullSpectatorShouldThrow
+		this.spectators.add(requireNonNull(spectator));
 	}
 
 	@Override
 	public void unregisterSpectator(Spectator spectator) {
-		// TODO
-		throw new RuntimeException("Implement me");
+		// testUnregisterNullSpectatorShouldThrow
+		requireNonNull(spectator);
+		if (!this.spectators.contains(spectator)) {
+			throw new IllegalArgumentException("Spectators list does not contain SPECTATOR");
+		}
+		for (int i=0; i<this.spectators.size(); i++) {
+			if (this.spectators.get(i).equals(spectator)) {
+				this.spectators.remove(i);
+			}
+		}
 	}
 
 	@Override
 	public Collection<Spectator> getSpectators() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		return Collections.unmodifiableList(this.spectators);
 	}
 
 	@Override
