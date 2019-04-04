@@ -246,6 +246,13 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 				player.player().makeMove(this, player.location(), this.moves, this);
 			}
 		}
+		if (isGameOver()){
+			notifyOnGameOver();
+		}
+		else if (this.currentPlayer == this.players.size()) {
+			this.currentPlayer = 0;
+			notifyOnRotationComplete();
+		}
 	}
 
 	@Override
@@ -255,10 +262,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		requireNonNull(m);
 		// testCallbackWithIllegalMoveNotInGivenMovesWillThrow
 		if (!this.moves.contains(m)){
-			if (this.players.get(this.currentPlayer).location() == 94) {
-				throw new IllegalArgumentException(String.format("Blue can't do this move, possible moves are %s. tickets are %s", this.moves, this.players.get(this.currentPlayer).tickets()));
-			}
-			throw new IllegalArgumentException(String.format("Move not in MOVES, don't have ticket %s?", m.toString()));
+			throw new IllegalArgumentException(String.format("Move not in MOVES", m.toString()));
 		}
 		m.visit(this);
 		this.currentPlayer += 1;
@@ -266,6 +270,24 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public void visit(DoubleMove move) {
+		// notification
+		TicketMove firstMove;
+		if (this.rounds.get(this.currentRound)) {
+			firstMove = move.firstMove();
+		}
+		else {
+			firstMove = new TicketMove(getCurrentPlayer(), move.firstMove().ticket(), this.prevMrXLocation);
+		}
+		TicketMove secondMove;
+		if (this.rounds.get(this.currentRound + 1)) {
+			secondMove = move.secondMove();
+		}
+		else {
+			secondMove = new TicketMove(getCurrentPlayer(), move.secondMove().ticket(), firstMove.destination());
+		}
+		notifyOnMoveMade(new DoubleMove(getCurrentPlayer(), firstMove, secondMove));
+
+
 		move.firstMove().visit(this);
 		move.secondMove().visit(this);
 		this.players.get(0).removeTicket(DOUBLE);
@@ -278,7 +300,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 				this.prevMrXLocation = this.players.get(0).location();
 			}
 			this.currentRound += 1;
+			notifyOnRoundStarted();
 		}
+		notifyOnMoveMade(move);
 	}
 
 	@Override
@@ -286,14 +310,18 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		ScotlandYardPlayer player = this.players.get(this.currentPlayer);
 		player.removeTicket(move.ticket());
 		player.location(move.destination());
+
 		if (player.isDetective()) {
 			this.players.get(0).addTicket(move.ticket());
+			notifyOnMoveMade(move);
 		}
 		else {
 			if (this.currentRound != this.getRounds().size() && this.getRounds().get(this.currentRound)) {
 				this.prevMrXLocation = this.players.get(0).location();
 			}
 			this.currentRound += 1;
+			notifyOnRoundStarted();
+			notifyOnMoveMade(new TicketMove(getCurrentPlayer(), move.ticket(), this.prevMrXLocation));
 		}
 	}
 
@@ -380,6 +408,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 					this.winners.add(player.colour());
 				}
 			}
+			notifyOnGameOver();
 			return true;
 		}
 
@@ -393,6 +422,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 						this.winners.add(player.colour());
 					}
 				}
+				notifyOnGameOver();
 				return true;
 			}
 		}
@@ -407,6 +437,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 						this.winners.add(player.colour());
 					}
 				}
+				notifyOnGameOver();
 				return true;
 			}
 		}
@@ -416,6 +447,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		// WINNERS: Mr.X
 		if (this.currentPlayer == this.players.size() && this.currentRound == this.rounds.size()) {
 			this.winners.add(this.players.get(0).colour());
+			notifyOnGameOver();
 			return true;
 		}
 
@@ -432,6 +464,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		}
 		if (allDetectivesStuck) {
 			this.winners.add(this.players.get(0).colour());
+			notifyOnGameOver();
 			return true;
 		}
 
