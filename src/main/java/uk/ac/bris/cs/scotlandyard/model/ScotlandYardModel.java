@@ -210,6 +210,29 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		return Optional.empty();
 	}
 
+	private void notifyOnGameOver() {
+		for (Spectator spectator : this.spectators) {
+			spectator.onGameOver(this, this.winners);
+		}
+	}
+
+	private void notifyOnMoveMade(Move move) {
+		for (Spectator spectator : this.spectators) {
+			spectator.onMoveMade(this, move);
+		}
+	}
+
+	private void notifyOnRotationComplete() {
+		for (Spectator spectator : this.spectators) {
+			spectator.onRotationComplete(this);
+		}
+	}
+	private void notifyOnRoundStarted() {
+		for (Spectator spectator : this.spectators) {
+			spectator.onRoundStarted(this, this.currentRound);
+		}
+	}
+
 	@Override
 	public void startRotate() {
 		if (isGameOver()) {
