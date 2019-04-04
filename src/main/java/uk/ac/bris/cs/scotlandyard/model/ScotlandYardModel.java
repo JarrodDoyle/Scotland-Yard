@@ -200,12 +200,15 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 	@Override
 	public void startRotate() {
-		this.currentPlayer = 0;
-		for (ScotlandYardPlayer x : this.players) {
-			Colour player = x.colour();
-			this.moves = validMoves(player);
-			x.player().makeMove(this, x.location(), this.moves, this);
-			this.currentPlayer += 1;
+		for (int i=0; i < this.players.size(); i++) {
+			if (i == this.currentPlayer) {
+				ScotlandYardPlayer player = this.players.get(i);
+				this.moves = validMoves(player.colour());
+				player.player().makeMove(this, player.location(), this.moves, this);
+			}
+		}
+		if (this.currentPlayer == this.players.size()) {
+			this.currentPlayer = 0;
 		}
 	}
 
@@ -218,6 +221,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		if (!this.moves.contains(m)){
 			throw new IllegalArgumentException("Move not in MOVES");
 		}
+		this.currentPlayer += 1;
 	}
 
 	@Override
