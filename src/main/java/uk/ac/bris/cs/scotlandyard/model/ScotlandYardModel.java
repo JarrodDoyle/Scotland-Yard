@@ -166,7 +166,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	private Set<Move> validMoves(Colour colour) {
 		HashSet<Move> moves = new HashSet<Move>();
-		Integer location = this.players.get(this.currentPlayer).location();
+		Integer location = getPlayer(colour).get().location();
 		Collection<Edge<Integer,Transport>> edges = this.graph.getEdgesFrom(this.graph.getNode(location));
 		Integer bus = getPlayerTickets(colour, BUS).get();
 		Integer taxi = getPlayerTickets(colour, TAXI).get();
@@ -198,6 +198,15 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			moves.add(new PassMove(colour));
 		}
 		return moves;
+	}
+
+	private Optional<ScotlandYardPlayer> getPlayer(Colour colour) {
+		for (ScotlandYardPlayer player : this.players) {
+			if (player.colour() == colour){
+				return Optional.of(player);
+			}
+		}
+		return Optional.empty();
 	}
 
 	@Override
@@ -342,9 +351,31 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 		// CASE: Mr.X is cornered
 		// WINNERS: Detectives
+		if (this.currentPlayer == this.players.size() && validMoves(this.players.get(0).colour()).size() == 1) {
+			ScotlandYardPlayer mrX = this.players.get(0);
+			if (mrX.hasTickets(BUS) || mrX.hasTickets(TAXI) || mrX.hasTickets(UNDERGROUND) || mrX.hasTickets(SECRET) || mrX.hasTickets(DOUBLE)) {
+				for (ScotlandYardPlayer player : this.players) {
+					if (player.isDetective()) {
+						this.winners.add(player.colour());
+					}
+				}
+				return true;
+			}
+		}
 
 		// CASE: Mr.X cannot move
 		// WINNERS: Detectives
+		if (this.currentPlayer == this.players.size()) {
+			ScotlandYardPlayer mrX = this.players.get(0);
+			if (!(mrX.hasTickets(BUS) || mrX.hasTickets(TAXI) || mrX.hasTickets(UNDERGROUND) || mrX.hasTickets(SECRET) || mrX.hasTickets(DOUBLE))) {
+				for (ScotlandYardPlayer player : this.players) {
+					if (player.isDetective()) {
+						this.winners.add(player.colour());
+					}
+				}
+				return true;
+			}
+		}
 
 
 		// CASE: Mr.X is not captured in any round
