@@ -212,7 +212,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	@Override
 	public void startRotate() {
 		if (isGameOver()) {
-			throw new IllegalStateException("What the FUCK");
+			throw new IllegalStateException("Game is over, cannot start new rotation.");
 		}
 		this.currentPlayer = 0;
 		for (int i=0; i < this.players.size(); i++) {
