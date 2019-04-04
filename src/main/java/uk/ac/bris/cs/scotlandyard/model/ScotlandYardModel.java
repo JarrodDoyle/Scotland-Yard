@@ -349,6 +349,10 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 		// CASE: Mr.X is not captured in any round
 		// WINNERS: Mr.X
+		if (this.currentPlayer == this.players.size() && this.currentRound == this.rounds.size()) {
+			this.winners.add(this.players.get(0).colour());
+			return true;
+		}
 
 		// CASE: All detectives are stuck
 		// WINNERS: Mr.X
