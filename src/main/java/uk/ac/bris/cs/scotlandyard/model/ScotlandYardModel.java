@@ -246,11 +246,11 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 				player.player().makeMove(this, player.location(), this.moves, this);
 			}
 		}
-		if (isGameOver()){
-			notifyOnGameOver();
-		}
-		else if (this.currentPlayer == this.players.size()) {
+		if (this.currentPlayer == this.players.size()) {
 			this.currentPlayer = 0;
+			if (isGameOver()){
+				notifyOnGameOver();
+			}
 			notifyOnRotationComplete();
 		}
 	}
@@ -408,7 +408,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 					this.winners.add(player.colour());
 				}
 			}
-			notifyOnGameOver();
 			return true;
 		}
 
@@ -422,7 +421,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 						this.winners.add(player.colour());
 					}
 				}
-				notifyOnGameOver();
 				return true;
 			}
 		}
@@ -437,7 +435,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 						this.winners.add(player.colour());
 					}
 				}
-				notifyOnGameOver();
 				return true;
 			}
 		}
@@ -447,7 +444,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		// WINNERS: Mr.X
 		if (this.currentPlayer == this.players.size() && this.currentRound == this.rounds.size()) {
 			this.winners.add(this.players.get(0).colour());
-			notifyOnGameOver();
 			return true;
 		}
 
@@ -464,7 +460,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		}
 		if (allDetectivesStuck) {
 			this.winners.add(this.players.get(0).colour());
-			notifyOnGameOver();
 			return true;
 		}
 
