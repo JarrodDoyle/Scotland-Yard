@@ -227,20 +227,32 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public void visit(DoubleMove move) {
-		// TODO
-		throw new RuntimeException("Implement me");
+		move.firstMove().visit(this);
+		move.secondMove().visit(this);
+		this.players.get(0).removeTicket(DOUBLE);
 	}
 
 	@Override
 	public void visit(PassMove move) {
-		// TODO
-		throw new RuntimeException("Implement me");
+		if (this.players.get(this.currentPlayer).isMrX()) {
+			this.currentRound += 1;
+		}
 	}
 
 	@Override
 	public void visit(TicketMove move) {
-		// TODO
-		throw new RuntimeException("Implement me");
+		ScotlandYardPlayer player = this.players.get(this.currentPlayer);
+		player.removeTicket(move.ticket());
+		player.location(move.destination());
+		if (player.isDetective()) {
+			this.players.get(0).addTicket(move.ticket());
+		}
+		else {
+			this.currentRound += 1;
+			if (this.currentRound != this.getRounds().size() && this.getRounds().get(this.currentRound)) {
+				this.prevMrXLocation = this.players.get(0).location();
+			}
+		}
 	}
 
 	@Override
