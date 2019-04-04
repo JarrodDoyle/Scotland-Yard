@@ -172,7 +172,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		for (Edge<Integer,Transport> edge : edges) {
 			Transport transport = edge.data();
 			Integer destination = edge.destination().value();
-			if (!locationOccupiedByDetective(destination) && this.currentRound < this.getRounds().size()) {
+			if (!locationOccupiedByDetective(destination)) {
 				if (transport == Transport.BUS && bus > 0) {
 					moves.add(new TicketMove(colour, BUS, destination));
 					moves.addAll(doubleMoves(colour, destination, BUS, bus - 1, taxi, underground, secret));
@@ -200,15 +200,13 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public void startRotate() {
+		this.currentPlayer = 0;
 		for (int i=0; i < this.players.size(); i++) {
 			if (i == this.currentPlayer) {
 				ScotlandYardPlayer player = this.players.get(i);
 				this.moves = validMoves(player.colour());
 				player.player().makeMove(this, player.location(), this.moves, this);
 			}
-		}
-		if (this.currentPlayer == this.players.size()) {
-			this.currentPlayer = 0;
 		}
 	}
 
@@ -219,7 +217,10 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		requireNonNull(m);
 		// testCallbackWithIllegalMoveNotInGivenMovesWillThrow
 		if (!this.moves.contains(m)){
-			throw new IllegalArgumentException("Move not in MOVES");
+			if (this.players.get(this.currentPlayer).location() == 94) {
+				throw new IllegalArgumentException(String.format("Blue can't do this move, possible moves are %s. tickets are %s", this.moves, this.players.get(this.currentPlayer).tickets()));
+			}
+			throw new IllegalArgumentException(String.format("Move not in MOVES, don't have ticket %s?", m.toString()));
 		}
 		m.visit(this);
 		this.currentPlayer += 1;
@@ -235,6 +236,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	@Override
 	public void visit(PassMove move) {
 		if (this.players.get(this.currentPlayer).isMrX()) {
+			if (this.currentRound != this.getRounds().size() && this.getRounds().get(this.currentRound)) {
+				this.prevMrXLocation = this.players.get(0).location();
+			}
 			this.currentRound += 1;
 		}
 	}
@@ -248,10 +252,10 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			this.players.get(0).addTicket(move.ticket());
 		}
 		else {
-			this.currentRound += 1;
 			if (this.currentRound != this.getRounds().size() && this.getRounds().get(this.currentRound)) {
 				this.prevMrXLocation = this.players.get(0).location();
 			}
+			this.currentRound += 1;
 		}
 	}
 
