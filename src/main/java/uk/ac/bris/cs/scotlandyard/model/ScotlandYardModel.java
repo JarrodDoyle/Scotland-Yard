@@ -34,6 +34,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	private Integer currentRound;
 	private Integer prevMrXLocation;
 	private Set<Move> moves;
+	private Set<Colour> winners;
+	private Boolean mrXStuck;
 
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
@@ -123,6 +125,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		this.currentPlayer = 0;
 		this.prevMrXLocation = 0;
 		this.currentRound = 0;
+		this.winners = new HashSet<Colour>();
 	}
 
 	private Boolean locationOccupiedByDetective(Integer location) {
@@ -185,7 +188,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 					moves.add(new TicketMove(colour, UNDERGROUND, destination));
 					moves.addAll(doubleMoves(colour, destination, UNDERGROUND, bus, taxi, underground - 1, secret));
 				}
-
 				if (secret > 0) {
 					moves.add(new TicketMove(colour, SECRET, destination));
 					moves.addAll(doubleMoves(colour, destination, SECRET, bus, taxi, underground, secret - 1));
@@ -200,6 +202,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public void startRotate() {
+		if (isGameOver()) {
+			throw new IllegalStateException("What the FUCK");
+		}
 		this.currentPlayer = 0;
 		for (int i=0; i < this.players.size(); i++) {
 			if (i == this.currentPlayer) {
@@ -291,8 +296,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public Set<Colour> getWinningPlayers() {
-		// TODO implement this properly
-		return Collections.unmodifiableSet(new HashSet<Colour>());
+		return Collections.unmodifiableSet(this.winners);
 	}
 
 	@Override
@@ -325,7 +329,30 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public boolean isGameOver() {
-		// TODO implement this properly
+		// CASE: Mr.X is captured
+		// WINNERS: Detectives
+		if (locationOccupiedByDetective(this.players.get(0).location())){
+			for (ScotlandYardPlayer player : this.players) {
+				if (player.isDetective()) {
+					this.winners.add(player.colour());
+				}
+			}
+			return true;
+		}
+
+		// CASE: Mr.X is cornered
+		// WINNERS: Detectives
+
+		// CASE: Mr.X cannot move
+		// WINNERS: Detectives
+
+
+		// CASE: All detectives are stuck
+		// WINNERS: Mr.X
+
+		// CASE: Mr.X is not captured in any round
+		// WINNERS: Mr.X
+
 		return false;
 	}
 
