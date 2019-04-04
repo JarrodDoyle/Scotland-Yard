@@ -141,7 +141,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			for (Edge<Integer,Transport> edge : edges) {
 				Transport transport = edge.data();
 				Integer destination = edge.destination().value();
-				if (!locationOccupiedByDetective(destination)) {
+				if (!locationOccupiedByDetective(destination) && this.currentRound < this.getRounds().size() - 1) {
 					if (transport == Transport.BUS && bus > 0) {
 						moves.add(new DoubleMove(colour, prevTicket, location, BUS, destination));
 					}
@@ -172,7 +172,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		for (Edge<Integer,Transport> edge : edges) {
 			Transport transport = edge.data();
 			Integer destination = edge.destination().value();
-			if (!locationOccupiedByDetective(destination)) {
+			if (!locationOccupiedByDetective(destination) && this.currentRound < this.getRounds().size()) {
 				if (transport == Transport.BUS && bus > 0) {
 					moves.add(new TicketMove(colour, BUS, destination));
 					moves.addAll(doubleMoves(colour, destination, BUS, bus - 1, taxi, underground, secret));
