@@ -347,12 +347,26 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		// WINNERS: Detectives
 
 
-		// CASE: All detectives are stuck
-		// WINNERS: Mr.X
-
 		// CASE: Mr.X is not captured in any round
 		// WINNERS: Mr.X
 
+		// CASE: All detectives are stuck
+		// WINNERS: Mr.X
+		boolean allDetectivesStuck = true;
+		for (ScotlandYardPlayer player : this.players) {
+			if (player.isDetective()) {
+				if (player.hasTickets(BUS) || player.hasTickets(TAXI) || player.hasTickets(UNDERGROUND)) {
+					allDetectivesStuck = false;
+					break;
+				}
+			}
+		}
+		if (allDetectivesStuck) {
+			this.winners.add(this.players.get(0).colour());
+			return true;
+		}
+
+		// NO WIN CONDITION MET
 		return false;
 	}
 
