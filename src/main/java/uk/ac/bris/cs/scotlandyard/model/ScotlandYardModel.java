@@ -26,7 +26,7 @@ import uk.ac.bris.cs.gamekit.graph.ImmutableGraph;
 import uk.ac.bris.cs.gamekit.graph.Graph;
 
 // TODO implement all methods and pass all tests
-public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
+public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, MoveVisitor {
 	private List<Boolean> rounds;
 	private Graph<Integer, Transport> graph;
 	private List<ScotlandYardPlayer> players;
@@ -213,7 +213,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 	}
 
 	@Override
-	public void accept(Move m){
+	public void accept(Move m) {
 		// testCallbackIsNotNull
 		// testCallbackWithNullWillThrow
 		requireNonNull(m);
@@ -221,7 +221,26 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		if (!this.moves.contains(m)){
 			throw new IllegalArgumentException("Move not in MOVES");
 		}
+		m.visit(this);
 		this.currentPlayer += 1;
+	}
+
+	@Override
+	public void visit(DoubleMove move) {
+		// TODO
+		throw new RuntimeException("Implement me");
+	}
+
+	@Override
+	public void visit(PassMove move) {
+		// TODO
+		throw new RuntimeException("Implement me");
+	}
+
+	@Override
+	public void visit(TicketMove move) {
+		// TODO
+		throw new RuntimeException("Implement me");
 	}
 
 	@Override
