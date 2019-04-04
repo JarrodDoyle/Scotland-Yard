@@ -247,11 +247,14 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			}
 		}
 		if (this.currentPlayer == this.players.size()) {
-			this.currentPlayer = 0;
 			if (isGameOver()){
+				this.currentPlayer = 0;
 				notifyOnGameOver();
 			}
-			notifyOnRotationComplete();
+			else {
+				this.currentPlayer = 0;
+				notifyOnRotationComplete();
+			}
 		}
 	}
 
