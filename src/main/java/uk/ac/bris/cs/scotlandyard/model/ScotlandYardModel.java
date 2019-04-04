@@ -34,6 +34,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	private Integer currentRound;
 	private Integer prevMrXLocation;
 	private Set<Move> moves;
+	private Set<Colour> winners;
+	private Boolean mrXStuck;
 
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
@@ -123,6 +125,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		this.currentPlayer = 0;
 		this.prevMrXLocation = 0;
 		this.currentRound = 0;
+		this.winners = new HashSet<Colour>();
 	}
 
 	private Boolean locationOccupiedByDetective(Integer location) {
@@ -163,7 +166,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	private Set<Move> validMoves(Colour colour) {
 		HashSet<Move> moves = new HashSet<Move>();
-		Integer location = this.players.get(this.currentPlayer).location();
+		Integer location = getPlayer(colour).get().location();
 		Collection<Edge<Integer,Transport>> edges = this.graph.getEdgesFrom(this.graph.getNode(location));
 		Integer bus = getPlayerTickets(colour, BUS).get();
 		Integer taxi = getPlayerTickets(colour, TAXI).get();
@@ -185,7 +188,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 					moves.add(new TicketMove(colour, UNDERGROUND, destination));
 					moves.addAll(doubleMoves(colour, destination, UNDERGROUND, bus, taxi, underground - 1, secret));
 				}
-
 				if (secret > 0) {
 					moves.add(new TicketMove(colour, SECRET, destination));
 					moves.addAll(doubleMoves(colour, destination, SECRET, bus, taxi, underground, secret - 1));
@@ -198,8 +200,20 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		return moves;
 	}
 
+	private Optional<ScotlandYardPlayer> getPlayer(Colour colour) {
+		for (ScotlandYardPlayer player : this.players) {
+			if (player.colour() == colour){
+				return Optional.of(player);
+			}
+		}
+		return Optional.empty();
+	}
+
 	@Override
 	public void startRotate() {
+		if (isGameOver()) {
+			throw new IllegalStateException("What the FUCK");
+		}
 		this.currentPlayer = 0;
 		for (int i=0; i < this.players.size(); i++) {
 			if (i == this.currentPlayer) {
@@ -291,8 +305,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public Set<Colour> getWinningPlayers() {
-		// TODO implement this properly
-		return Collections.unmodifiableSet(new HashSet<Colour>());
+		return Collections.unmodifiableSet(this.winners);
 	}
 
 	@Override
@@ -325,7 +338,70 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public boolean isGameOver() {
-		// TODO implement this properly
+		// CASE: Mr.X is captured
+		// WINNERS: Detectives
+		if (locationOccupiedByDetective(this.players.get(0).location())){
+			for (ScotlandYardPlayer player : this.players) {
+				if (player.isDetective()) {
+					this.winners.add(player.colour());
+				}
+			}
+			return true;
+		}
+
+		// CASE: Mr.X is cornered
+		// WINNERS: Detectives
+		if (this.currentPlayer == this.players.size() && validMoves(this.players.get(0).colour()).size() == 1) {
+			ScotlandYardPlayer mrX = this.players.get(0);
+			if (mrX.hasTickets(BUS) || mrX.hasTickets(TAXI) || mrX.hasTickets(UNDERGROUND) || mrX.hasTickets(SECRET) || mrX.hasTickets(DOUBLE)) {
+				for (ScotlandYardPlayer player : this.players) {
+					if (player.isDetective()) {
+						this.winners.add(player.colour());
+					}
+				}
+				return true;
+			}
+		}
+
+		// CASE: Mr.X cannot move
+		// WINNERS: Detectives
+		if (this.currentPlayer == this.players.size()) {
+			ScotlandYardPlayer mrX = this.players.get(0);
+			if (!(mrX.hasTickets(BUS) || mrX.hasTickets(TAXI) || mrX.hasTickets(UNDERGROUND) || mrX.hasTickets(SECRET) || mrX.hasTickets(DOUBLE))) {
+				for (ScotlandYardPlayer player : this.players) {
+					if (player.isDetective()) {
+						this.winners.add(player.colour());
+					}
+				}
+				return true;
+			}
+		}
+
+
+		// CASE: Mr.X is not captured in any round
+		// WINNERS: Mr.X
+		if (this.currentPlayer == this.players.size() && this.currentRound == this.rounds.size()) {
+			this.winners.add(this.players.get(0).colour());
+			return true;
+		}
+
+		// CASE: All detectives are stuck
+		// WINNERS: Mr.X
+		boolean allDetectivesStuck = true;
+		for (ScotlandYardPlayer player : this.players) {
+			if (player.isDetective()) {
+				if (player.hasTickets(BUS) || player.hasTickets(TAXI) || player.hasTickets(UNDERGROUND)) {
+					allDetectivesStuck = false;
+					break;
+				}
+			}
+		}
+		if (allDetectivesStuck) {
+			this.winners.add(this.players.get(0).colour());
+			return true;
+		}
+
+		// NO WIN CONDITION MET
 		return false;
 	}
 
