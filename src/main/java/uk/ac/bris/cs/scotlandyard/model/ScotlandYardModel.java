@@ -31,6 +31,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	private Graph<Integer, Transport> graph;
 	private List<ScotlandYardPlayer> players;
 	private Integer currentPlayer;
+	private Integer prevPlayer;
 	private Integer currentRound;
 	private Integer prevMrXLocation;
 	private Set<Move> moves;
@@ -123,6 +124,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			this.players.add(new ScotlandYardPlayer(config.player, config.colour, config.location, config.tickets));
 		}
 		this.currentPlayer = 0;
+		this.prevPlayer = 0;
 		this.prevMrXLocation = 0;
 		this.currentRound = 0;
 		this.winners = new HashSet<Colour>();
@@ -238,23 +240,22 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		if (isGameOver()) {
 			throw new IllegalStateException("Game is over, cannot start new rotation.");
 		}
+		boolean gameOver = false;
 		this.currentPlayer = 0;
 		for (int i=0; i < this.players.size(); i++) {
 			if (i == this.currentPlayer) {
 				ScotlandYardPlayer player = this.players.get(i);
 				this.moves = validMoves(player.colour());
 				player.player().makeMove(this, player.location(), this.moves, this);
+				if (isGameOver()) {
+					gameOver = true;
+					notifyOnGameOver();
+					break;
+				}
 			}
 		}
-		if (this.currentPlayer == this.players.size()) {
-			if (isGameOver()){
-				this.currentPlayer = 0;
-				notifyOnGameOver();
-			}
-			else {
-				this.currentPlayer = 0;
-				notifyOnRotationComplete();
-			}
+		if (!gameOver && this.prevPlayer == this.players.size() - 1){
+			notifyOnRotationComplete();
 		}
 	}
 
@@ -267,55 +268,62 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		if (!this.moves.contains(m)){
 			throw new IllegalArgumentException(String.format("Move not in MOVES", m.toString()));
 		}
-		m.visit(this);
+		this.prevPlayer = this.currentPlayer;
 		this.currentPlayer += 1;
+		if (this.currentPlayer == this.players.size()) {
+			this.currentPlayer = 0;
+		}
+		m.visit(this);
 	}
 
 	@Override
 	public void visit(DoubleMove move) {
 		// notification
+		Colour player = this.players.get(this.prevPlayer).colour();
 		TicketMove firstMove;
 		if (this.rounds.get(this.currentRound)) {
 			firstMove = move.firstMove();
 		}
 		else {
-			firstMove = new TicketMove(getCurrentPlayer(), move.firstMove().ticket(), this.prevMrXLocation);
+			firstMove = new TicketMove(player, move.firstMove().ticket(), this.prevMrXLocation);
 		}
 		TicketMove secondMove;
 		if (this.rounds.get(this.currentRound + 1)) {
 			secondMove = move.secondMove();
 		}
 		else {
-			secondMove = new TicketMove(getCurrentPlayer(), move.secondMove().ticket(), firstMove.destination());
+			secondMove = new TicketMove(player, move.secondMove().ticket(), firstMove.destination());
 		}
-		notifyOnMoveMade(new DoubleMove(getCurrentPlayer(), firstMove, secondMove));
-
+		this.players.get(0).removeTicket(DOUBLE);
+		isGameOver();
+		notifyOnMoveMade(new DoubleMove(player, firstMove, secondMove));
 
 		move.firstMove().visit(this);
 		move.secondMove().visit(this);
-		this.players.get(0).removeTicket(DOUBLE);
 	}
 
 	@Override
 	public void visit(PassMove move) {
-		if (this.players.get(this.currentPlayer).isMrX()) {
+		if (this.players.get(this.prevPlayer).isMrX()) {
 			if (this.currentRound != this.getRounds().size() && this.getRounds().get(this.currentRound)) {
 				this.prevMrXLocation = this.players.get(0).location();
 			}
 			this.currentRound += 1;
 			notifyOnRoundStarted();
 		}
+		isGameOver();
 		notifyOnMoveMade(move);
 	}
 
 	@Override
 	public void visit(TicketMove move) {
-		ScotlandYardPlayer player = this.players.get(this.currentPlayer);
+		ScotlandYardPlayer player = this.players.get(this.prevPlayer);
 		player.removeTicket(move.ticket());
 		player.location(move.destination());
 
 		if (player.isDetective()) {
 			this.players.get(0).addTicket(move.ticket());
+			isGameOver();
 			notifyOnMoveMade(move);
 		}
 		else {
@@ -324,7 +332,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			}
 			this.currentRound += 1;
 			notifyOnRoundStarted();
-			notifyOnMoveMade(new TicketMove(getCurrentPlayer(), move.ticket(), this.prevMrXLocation));
+			isGameOver();
+			notifyOnMoveMade(new TicketMove(player.colour(), move.ticket(), this.prevMrXLocation));
 		}
 	}
 
@@ -416,7 +425,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 		// CASE: Mr.X is cornered
 		// WINNERS: Detectives
-		if (this.currentPlayer == this.players.size() && validMoves(this.players.get(0).colour()).size() == 1) {
+		if (this.prevPlayer == this.players.size() - 1 && validMoves(this.players.get(0).colour()).size() == 1) {
 			ScotlandYardPlayer mrX = this.players.get(0);
 			if (mrX.hasTickets(BUS) || mrX.hasTickets(TAXI) || mrX.hasTickets(UNDERGROUND) || mrX.hasTickets(SECRET) || mrX.hasTickets(DOUBLE)) {
 				for (ScotlandYardPlayer player : this.players) {
@@ -430,7 +439,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 		// CASE: Mr.X cannot move
 		// WINNERS: Detectives
-		if (this.currentPlayer == this.players.size()) {
+		if (this.prevPlayer == this.players.size() - 1) {
 			ScotlandYardPlayer mrX = this.players.get(0);
 			if (!(mrX.hasTickets(BUS) || mrX.hasTickets(TAXI) || mrX.hasTickets(UNDERGROUND) || mrX.hasTickets(SECRET) || mrX.hasTickets(DOUBLE))) {
 				for (ScotlandYardPlayer player : this.players) {
@@ -445,7 +454,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 		// CASE: Mr.X is not captured in any round
 		// WINNERS: Mr.X
-		if (this.currentPlayer == this.players.size() && this.currentRound == this.rounds.size()) {
+		if (this.prevPlayer == this.players.size() - 1 && this.currentRound == this.rounds.size()) {
 			this.winners.add(this.players.get(0).colour());
 			return true;
 		}
