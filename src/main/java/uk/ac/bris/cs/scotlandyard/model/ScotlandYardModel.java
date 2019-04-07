@@ -34,7 +34,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	private Integer prevPlayer = 0;
 	private Integer currentRound = 0;
 	private Integer prevMrXLocation = 0;
-	private Set<Move> moves; new HashSet<Move>();
+	private Set<Move> moves = new HashSet<Move>();
 	private Set<Colour> winners = new HashSet<Colour>();
 	private List<Spectator> spectators = new ArrayList<Spectator>();
 
