@@ -13,6 +13,7 @@ import static uk.ac.bris.cs.scotlandyard.model.Ticket.BUS;
 import static uk.ac.bris.cs.scotlandyard.model.Ticket.TAXI;
 import static uk.ac.bris.cs.scotlandyard.model.Ticket.UNDERGROUND;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -112,25 +113,20 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		return false;
 	}
 
-	private Set<Move> doubleMoves(Colour colour, Integer location, Ticket prevTicket, Integer bus, Integer taxi, Integer underground, Integer secret) {
+	private Set<Move> doubleMoves(Colour colour, Integer location, Ticket prevTicket, Map<Transport,Ticket> ticketMap) {
 		HashSet<Move> moves = new HashSet<Move>();
-		if (!colour.isDetective() && getPlayerTickets(colour, DOUBLE).get() > 0) {
+		if (colour.isMrX() && getPlayerTickets(colour, DOUBLE).get() > 0) {
 			Collection<Edge<Integer,Transport>> edges = this.graph.getEdgesFrom(this.graph.getNode(location));
 			for (Edge<Integer,Transport> edge : edges) {
 				Transport transport = edge.data();
 				Integer destination = edge.destination().value();
 				if (!locationOccupiedByDetective(destination) && this.currentRound < this.getRounds().size() - 1) {
-					if (transport == Transport.BUS && bus > 0) {
-						moves.add(new DoubleMove(colour, prevTicket, location, BUS, destination));
+					Integer minimumTicketCount = (ticketMap.get(transport) == prevTicket) ? 1 : 0;
+					if (getPlayerTickets(colour, ticketMap.get(transport)).get() > minimumTicketCount) {
+						moves.add(new DoubleMove(colour, prevTicket, location, ticketMap.get(transport), destination));
 					}
-					else if (transport == Transport.TAXI && taxi > 0) {
-						moves.add(new DoubleMove(colour, prevTicket, location, TAXI, destination));
-					}
-					else if (transport == Transport.UNDERGROUND && underground > 0) {
-						moves.add(new DoubleMove(colour, prevTicket, location, UNDERGROUND, destination));
-					}
-
-					if (secret > 0) {
+					minimumTicketCount = (prevTicket == SECRET) ? 1 : 0;
+					if (getPlayerTickets(colour, SECRET).get() > 0 && transport != Transport.FERRY) {
 						moves.add(new DoubleMove(colour, prevTicket, location, SECRET, destination));
 					}
 				}
@@ -143,29 +139,21 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		HashSet<Move> moves = new HashSet<Move>();
 		Integer location = getPlayer(colour).get().location();
 		Collection<Edge<Integer,Transport>> edges = this.graph.getEdgesFrom(this.graph.getNode(location));
-		Integer bus = getPlayerTickets(colour, BUS).get();
-		Integer taxi = getPlayerTickets(colour, TAXI).get();
-		Integer underground = getPlayerTickets(colour, UNDERGROUND).get();
-		Integer secret = getPlayerTickets(colour, SECRET).get();
+		Map<Transport,Ticket> ticketMap = Map.of(Transport.BUS, BUS,
+									Transport.TAXI, TAXI,
+									Transport.UNDERGROUND, UNDERGROUND,
+									Transport.FERRY, SECRET);
 		for (Edge<Integer,Transport> edge : edges) {
 			Transport transport = edge.data();
 			Integer destination = edge.destination().value();
 			if (!locationOccupiedByDetective(destination)) {
-				if (transport == Transport.BUS && bus > 0) {
-					moves.add(new TicketMove(colour, BUS, destination));
-					moves.addAll(doubleMoves(colour, destination, BUS, bus - 1, taxi, underground, secret));
+				if (getPlayerTickets(colour, ticketMap.get(transport)).get() > 0) {
+					moves.add(new TicketMove(colour, ticketMap.get(transport), destination));
+					moves.addAll(doubleMoves(colour, destination, ticketMap.get(transport), ticketMap));
 				}
-				else if (transport == Transport.TAXI && taxi > 0) {
-					moves.add(new TicketMove(colour, TAXI, destination));
-					moves.addAll(doubleMoves(colour, destination, TAXI, bus, taxi - 1, underground, secret));
-				}
-				else if (transport == Transport.UNDERGROUND && underground > 0) {
-					moves.add(new TicketMove(colour, UNDERGROUND, destination));
-					moves.addAll(doubleMoves(colour, destination, UNDERGROUND, bus, taxi, underground - 1, secret));
-				}
-				if (secret > 0) {
+				if (getPlayerTickets(colour, SECRET).get() > 0 && transport != Transport.FERRY) {
 					moves.add(new TicketMove(colour, SECRET, destination));
-					moves.addAll(doubleMoves(colour, destination, SECRET, bus, taxi, underground, secret - 1));
+					moves.addAll(doubleMoves(colour, destination, SECRET, ticketMap));
 				}
 			}
 		}
