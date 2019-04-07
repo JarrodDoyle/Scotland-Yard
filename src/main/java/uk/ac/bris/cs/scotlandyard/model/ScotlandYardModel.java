@@ -41,29 +41,20 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
 			PlayerConfiguration... restOfTheDetectives) {
-		// testEmptyRoundsShouldThrow
-		// testNullRoundsShouldThrow
 		if (requireNonNull(rounds).isEmpty()) {
 			throw new IllegalArgumentException("Empty rounds");
 		}
 		this.rounds = rounds;
 
-		// testNullMapShouldThrow
-		// testEmptyMapShouldThrow
 		if (requireNonNull(graph).isEmpty()) {
 			throw new IllegalArgumentException("Empty graph/map");
 		}
 		this.graph = graph;
 
-		// testSwappedMrXShouldThrow
-		// testNoMrXShouldThrow
 		if (mrX.colour.isDetective()) {
 			throw new IllegalArgumentException("MrX should be BLACK");
 		}
 
-		// testNullMrXShouldThrow
-		// testNullDetectiveShouldThrow
-		// testAnyNullDetectiveShouldThrow
 		ArrayList<PlayerConfiguration> configurations = new ArrayList<>();
 		configurations.add(requireNonNull(mrX));
 		configurations.add(requireNonNull(firstDetective));
@@ -74,22 +65,16 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		Set<Integer> locations = new HashSet<>();
 		Set<Colour> colours = new HashSet<>();
 		for (PlayerConfiguration config : configurations) {
-			// testLocationOverlapBetweenDetectivesShouldThrow
-			// testLocationOverlapBetweenMrXAndDetectiveShouldThrow
 			if (locations.contains(config.location)){
 				throw new IllegalArgumentException("Duplicate player location");
 			}
 			locations.add(config.location);
 
-			// testMoreThanOneMrXShouldThrow
-			// testDuplicateDetectivesShouldThrow
 			if (colours.contains(config.colour)){
 				throw new IllegalArgumentException("Duplicate player colour");
 			}
 			colours.add(config.colour);
 
-			// testDetectiveMissingAnyTicketsShouldThrow
-			// testMrXMissingAnyTicketsShouldThrow
 			Set<Ticket> keys = config.tickets.keySet();
 			List<Ticket> tickets = new ArrayList<Ticket>(List.of(BUS, DOUBLE, SECRET, TAXI, UNDERGROUND));
 			if (!(keys.containsAll(tickets))) {
@@ -97,18 +82,15 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			}
 
 			if (config.colour.isDetective()) {
-				// testDetectiveHaveDoubleTicketShouldThrow
 				if (config.tickets.get(DOUBLE) > 0){
 					throw new IllegalArgumentException("Detective has DOUBLE");
 				}
-				// testDetectiveHaveSecretTicketShouldThrow
 				if (config.tickets.get(SECRET) > 0){
 					throw new IllegalArgumentException("Detective has SECRET");
 				}
 			}
 		}
 
-		// Put PlayerConfiguration into ScotlandYardPlayer so that it is mutable
 		this.players = new ArrayList<ScotlandYardPlayer>();
 		for (PlayerConfiguration config : configurations) {
 			this.players.add(new ScotlandYardPlayer(config.player, config.colour, config.location, config.tickets));
@@ -257,11 +239,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public void accept(Move m) {
-		// testCallbackIsNotNull
-		// testCallbackWithNullWillThrow
-		requireNonNull(m);
-		// testCallbackWithIllegalMoveNotInGivenMovesWillThrow
-		if (!this.moves.contains(m)){
+		if (!this.moves.contains(requireNonNull(m))){
 			throw new IllegalArgumentException("Move not in MOVES");
 		}
 		this.prevPlayer = this.currentPlayer;
@@ -274,7 +252,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public void visit(DoubleMove move) {
-		// notification
 		Colour player = this.players.get(this.prevPlayer).colour();
 		TicketMove firstMove;
 		if (this.rounds.get(this.currentRound)) {
@@ -290,6 +267,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		else {
 			secondMove = new TicketMove(player, move.secondMove().ticket(), firstMove.destination());
 		}
+
 		this.players.get(0).removeTicket(DOUBLE);
 		isGameOver();
 		notifyOnMoveMade(new DoubleMove(player, firstMove, secondMove));
@@ -438,27 +416,21 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public Colour getCurrentPlayer() {
-		// testGetPlayerIsMrXInitially
 		return this.players.get(this.currentPlayer).colour();
 	}
 
 	@Override
 	public int getCurrentRound() {
-		// testGetRoundIsNOT_STARTEDInitially
 		return this.currentRound;
 	}
 
 	@Override
 	public List<Boolean> getRounds() {
-		// testGetRoundsIsImmutable
-		// testGetRoundsMatchesSupplied
 		return Collections.unmodifiableList(this.rounds);
 	}
 
 	@Override
 	public Graph<Integer, Transport> getGraph() {
-		// testGetGraphIsImmutable
-		// testGetGraphMatchesSupplied
 		return new ImmutableGraph<Integer, Transport>(this.graph);
 	}
 
