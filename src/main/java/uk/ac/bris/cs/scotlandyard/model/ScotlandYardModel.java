@@ -158,12 +158,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		return Optional.empty();
 	}
 
-	private void notifyOnGameOver() {
-		for (Spectator spectator : spectators) {
-			spectator.onGameOver(this, winners);
-		}
-	}
-
 	private void notifyOnMoveMade(Move move) {
 		isGameOver();
 		for (Spectator spectator : spectators) {
@@ -171,11 +165,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		}
 	}
 
-	private void notifyOnRotationComplete() {
-		for (Spectator spectator : spectators) {
-			spectator.onRotationComplete(this);
-		}
-	}
 	private void notifyOnRoundStarted() {
 		if (getRounds().get(currentRound)) {
 			this.prevMrXLocation = players.get(0).location();
@@ -208,14 +197,18 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		}
 		m.visit(this);
 		if (isGameOver()) {
-			notifyOnGameOver();
+			for (Spectator spectator : spectators) {
+				spectator.onGameOver(this, winners);
+			}
 		}
 		else if (players.get(currentPlayer).isDetective()) {
 			ScotlandYardPlayer player = players.get(currentPlayer);
 			player.player().makeMove(this, player.location(), validMoves(player.colour()), this);
 		}
 		else {
-			notifyOnRotationComplete();
+			for (Spectator spectator : spectators) {
+				spectator.onRotationComplete(this);
+			}
 		}
 	}
 
@@ -349,10 +342,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		}
 		allDetectivesStuck: {
 			for (ScotlandYardPlayer player : players) {
-				if (player.isDetective()) {
-					if (player.hasTickets(BUS) || player.hasTickets(TAXI) || player.hasTickets(UNDERGROUND)) {
-						break allDetectivesStuck;
-					}
+				if (player.isDetective() && (player.hasTickets(BUS) || player.hasTickets(TAXI) || player.hasTickets(UNDERGROUND))) {
+					break allDetectivesStuck;
 				}
 			}
 			winners.add(players.get(0).colour());
