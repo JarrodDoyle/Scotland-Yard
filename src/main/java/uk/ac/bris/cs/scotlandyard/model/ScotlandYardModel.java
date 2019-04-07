@@ -42,18 +42,18 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
 			PlayerConfiguration... restOfTheDetectives) {
 		// testEmptyRoundsShouldThrow
-		if (rounds.isEmpty()) {
+		// testNullRoundsShouldThrow
+		if (requireNonNull(rounds).isEmpty()) {
 			throw new IllegalArgumentException("Empty rounds");
 		}
-		// testNullRoundsShouldThrow
-		this.rounds = requireNonNull(rounds);
+		this.rounds = rounds;
 
+		// testNullMapShouldThrow
 		// testEmptyMapShouldThrow
-		if (graph.isEmpty()) {
+		if (requireNonNull(graph).isEmpty()) {
 			throw new IllegalArgumentException("Empty graph/map");
 		}
-		// testNullMapShouldThrow
-		this.graph = requireNonNull(graph);
+		this.graph = graph;
 
 		// testSwappedMrXShouldThrow
 		// testNoMrXShouldThrow
@@ -61,13 +61,13 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			throw new IllegalArgumentException("MrX should be BLACK");
 		}
 
-		ArrayList<PlayerConfiguration> configurations = new ArrayList<>();
 		// testNullMrXShouldThrow
-		configurations.add(requireNonNull(mrX));
 		// testNullDetectiveShouldThrow
+		// testAnyNullDetectiveShouldThrow
+		ArrayList<PlayerConfiguration> configurations = new ArrayList<>();
+		configurations.add(requireNonNull(mrX));
 		configurations.add(requireNonNull(firstDetective));
 		for (PlayerConfiguration config : restOfTheDetectives){
-			// testAnyNullDetectiveShouldThrow
 			configurations.add(requireNonNull(config));
 		}
 
@@ -225,13 +225,19 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		}
 	}
 
+	private void updateMrXLocation() {
+		if (this.getRounds().get(this.currentRound)) {
+			this.prevMrXLocation = this.players.get(0).location();
+		}
+	}
+
 	@Override
 	public void startRotate() {
 		if (isGameOver()) {
 			throw new IllegalStateException("Game is over, cannot start new rotation.");
 		}
-		boolean gameOver = false;
 		this.currentPlayer = 0;
+		boolean gameOver = false;
 		for (int i=0; i < this.players.size(); i++) {
 			if (i == this.currentPlayer) {
 				ScotlandYardPlayer player = this.players.get(i);
@@ -256,7 +262,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		requireNonNull(m);
 		// testCallbackWithIllegalMoveNotInGivenMovesWillThrow
 		if (!this.moves.contains(m)){
-			throw new IllegalArgumentException(String.format("Move not in MOVES", m.toString()));
+			throw new IllegalArgumentException("Move not in MOVES");
 		}
 		this.prevPlayer = this.currentPlayer;
 		this.currentPlayer += 1;
@@ -295,9 +301,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	@Override
 	public void visit(PassMove move) {
 		if (this.players.get(this.prevPlayer).isMrX()) {
-			if (this.currentRound != this.getRounds().size() && this.getRounds().get(this.currentRound)) {
-				this.prevMrXLocation = this.players.get(0).location();
-			}
+			updateMrXLocation();
 			this.currentRound += 1;
 			notifyOnRoundStarted();
 		}
@@ -311,43 +315,31 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		player.removeTicket(move.ticket());
 		player.location(move.destination());
 
-		if (player.isDetective()) {
-			this.players.get(0).addTicket(move.ticket());
-			isGameOver();
-			notifyOnMoveMade(move);
-		}
-		else {
-			if (this.currentRound != this.getRounds().size() && this.getRounds().get(this.currentRound)) {
-				this.prevMrXLocation = this.players.get(0).location();
-			}
+		if (player.isMrX()) {
+			updateMrXLocation();
 			this.currentRound += 1;
 			notifyOnRoundStarted();
-			isGameOver();
-			notifyOnMoveMade(new TicketMove(player.colour(), move.ticket(), this.prevMrXLocation));
 		}
+		else { this.players.get(0).addTicket(move.ticket()); }
+		isGameOver();
+		Integer destination = (player.isMrX()) ? this.prevMrXLocation : player.location();
+		notifyOnMoveMade(new TicketMove(player.colour(), move.ticket(), destination));
 	}
 
 	@Override
 	public void registerSpectator(Spectator spectator) {
-		if (this.spectators.contains(spectator)) {
+		if (this.spectators.contains(requireNonNull(spectator))) {
 			throw new IllegalArgumentException("Spectators already contains SPECTATOR");
 		}
-		// testRegisterNullSpectatorShouldThrow
-		this.spectators.add(requireNonNull(spectator));
+		this.spectators.add(spectator);
 	}
 
 	@Override
 	public void unregisterSpectator(Spectator spectator) {
-		// testUnregisterNullSpectatorShouldThrow
-		requireNonNull(spectator);
-		if (!this.spectators.contains(spectator)) {
+		if (!this.spectators.contains(requireNonNull(spectator))) {
 			throw new IllegalArgumentException("Spectators list does not contain SPECTATOR");
 		}
-		for (int i=0; i<this.spectators.size(); i++) {
-			if (this.spectators.get(i).equals(spectator)) {
-				this.spectators.remove(i);
-			}
-		}
+		this.spectators.remove(spectator);
 	}
 
 	@Override
@@ -357,13 +349,10 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public List<Colour> getPlayers() {
-		// testGetPlayersMatchesSupplied
-		// testGetPlayersStartsWithBlack
 		List<Colour> colours = new ArrayList<Colour>();
 		for (ScotlandYardPlayer player : this.players){
 			colours.add(player.colour());
 		}
-		// testGetPlayersIsImmutable
 		return Collections.unmodifiableList(colours);
 	}
 
@@ -374,29 +363,20 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public Optional<Integer> getPlayerLocation(Colour colour) {
-		// testGetPlayerLocationConcealsMrXLocationInitially
-		if (!colour.isDetective()){
+		if (colour.isMrX()){
 			return Optional.of(this.prevMrXLocation);
 		}
-		// testGetDetectiveLocationMatchesSupplied
-		for (ScotlandYardPlayer player : this.players){
-			if (player.colour() == colour){
-				return Optional.of(player.location());
-			}
+		if (!getPlayer(colour).equals(Optional.empty())) {
+			return Optional.of(getPlayer(colour).get().location());
 		}
-		// testGetPlayerLocationForNonExistentPlayerIsEmpty
 		return Optional.empty();
 	}
 
 	@Override
 	public Optional<Integer> getPlayerTickets(Colour colour, Ticket ticket) {
-		// testGetPlayerTicketsMatchesSupplied
-		for (ScotlandYardPlayer player : this.players){
-			if (player.colour() == colour){
-				return Optional.of(player.tickets().get(ticket));
-			}
+		if (!getPlayer(colour).equals(Optional.empty())) {
+			return Optional.of(getPlayer(colour).get().tickets().get(ticket));
 		}
-		// testGetPlayerTicketsForNonExistentPlayerIsEmpty
 		return Optional.empty();
 	}
 
