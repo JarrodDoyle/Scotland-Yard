@@ -90,20 +90,10 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 			// testDetectiveMissingAnyTicketsShouldThrow
 			// testMrXMissingAnyTicketsShouldThrow
-			if (config.tickets.get(BUS) == null) {
-				throw new IllegalArgumentException("Player missing BUS ticket");
-			}
-			if (config.tickets.get(DOUBLE) == null) {
-				throw new IllegalArgumentException("Player missing DOUBLE ticket");
-			}
-			if (config.tickets.get(SECRET) == null) {
-				throw new IllegalArgumentException("Player missing SECRET ticket");
-			}
-			if (config.tickets.get(TAXI) == null) {
-				throw new IllegalArgumentException("Player missing TAXI ticket");
-			}
-			if (config.tickets.get(UNDERGROUND) == null) {
-				throw new IllegalArgumentException("Player missing UNDERGROUND ticket");
+			Set<Ticket> keys = config.tickets.keySet();
+			List<Ticket> tickets = new ArrayList<Ticket>(List.of(BUS, DOUBLE, SECRET, TAXI, UNDERGROUND));
+			if (!(keys.containsAll(tickets))) {
+				throw new IllegalArgumentException("PlayerConfiguration missing one or more ticket type.");
 			}
 
 			if (config.colour.isDetective()) {
