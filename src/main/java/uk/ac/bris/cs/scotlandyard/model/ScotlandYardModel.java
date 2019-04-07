@@ -192,23 +192,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		if (isGameOver()) {
 			throw new IllegalStateException("Game is over, cannot start new rotation.");
 		}
-		this.currentPlayer = 0;
-		boolean gameOver = false;
-		for (int i=0; i < this.players.size(); i++) {
-			if (i == this.currentPlayer) {
-				ScotlandYardPlayer player = this.players.get(i);
-				this.moves = validMoves(player.colour());
-				player.player().makeMove(this, player.location(), this.moves, this);
-				if (isGameOver()) {
-					gameOver = true;
-					notifyOnGameOver();
-					break;
-				}
-			}
-		}
-		if (!gameOver && this.prevPlayer == this.players.size() - 1){
-			notifyOnRotationComplete();
-		}
+		ScotlandYardPlayer player = this.players.get(0);
+		this.moves = validMoves(player.colour());
+		player.player().makeMove(this, player.location(), this.moves, this);
 	}
 
 	@Override
@@ -222,6 +208,17 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			this.currentPlayer = 0;
 		}
 		m.visit(this);
+		if (isGameOver()) {
+			notifyOnGameOver();
+		}
+		else if (this.players.get(this.currentPlayer).isDetective()) {
+			ScotlandYardPlayer player = this.players.get(this.currentPlayer);
+			this.moves = validMoves(player.colour());
+			player.player().makeMove(this, player.location(), this.moves, this);
+		}
+		else {
+			notifyOnRotationComplete();
+		}
 	}
 
 	@Override
