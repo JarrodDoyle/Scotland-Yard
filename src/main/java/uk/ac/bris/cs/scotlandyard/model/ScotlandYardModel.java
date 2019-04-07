@@ -295,6 +295,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			secondMove = new TicketMove(player, move.secondMove().ticket(), firstMove.destination());
 		}
 		this.players.get(0).removeTicket(DOUBLE);
+		isGameOver();
 		notifyOnMoveMade(new DoubleMove(player, firstMove, secondMove));
 
 		move.firstMove().visit(this);
@@ -310,6 +311,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			this.currentRound += 1;
 			notifyOnRoundStarted();
 		}
+		isGameOver();
 		notifyOnMoveMade(move);
 	}
 
@@ -321,6 +323,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 		if (player.isDetective()) {
 			this.players.get(0).addTicket(move.ticket());
+			isGameOver();
 			notifyOnMoveMade(move);
 		}
 		else {
@@ -329,6 +332,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			}
 			this.currentRound += 1;
 			notifyOnRoundStarted();
+			isGameOver();
 			notifyOnMoveMade(new TicketMove(player.colour(), move.ticket(), this.prevMrXLocation));
 		}
 	}
