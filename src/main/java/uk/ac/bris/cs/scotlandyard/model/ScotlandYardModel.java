@@ -191,6 +191,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	}
 
 	private void notifyOnMoveMade(Move move) {
+		isGameOver();
 		for (Spectator spectator : this.spectators) {
 			spectator.onMoveMade(this, move);
 		}
@@ -202,6 +203,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		}
 	}
 	private void notifyOnRoundStarted() {
+		this.currentRound += 1;
 		for (Spectator spectator : this.spectators) {
 			spectator.onRoundStarted(this, this.currentRound);
 		}
@@ -269,7 +271,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		}
 
 		this.players.get(0).removeTicket(DOUBLE);
-		isGameOver();
 		notifyOnMoveMade(new DoubleMove(player, firstMove, secondMove));
 
 		move.firstMove().visit(this);
@@ -280,10 +281,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	public void visit(PassMove move) {
 		if (this.players.get(this.prevPlayer).isMrX()) {
 			updateMrXLocation();
-			this.currentRound += 1;
 			notifyOnRoundStarted();
 		}
-		isGameOver();
 		notifyOnMoveMade(move);
 	}
 
@@ -295,11 +294,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 		if (player.isMrX()) {
 			updateMrXLocation();
-			this.currentRound += 1;
 			notifyOnRoundStarted();
 		}
 		else { this.players.get(0).addTicket(move.ticket()); }
-		isGameOver();
 		Integer destination = (player.isMrX()) ? this.prevMrXLocation : player.location();
 		notifyOnMoveMade(new TicketMove(player.colour(), move.ticket(), destination));
 	}
