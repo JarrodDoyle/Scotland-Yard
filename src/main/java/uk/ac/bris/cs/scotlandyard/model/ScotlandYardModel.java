@@ -380,57 +380,44 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		return Optional.empty();
 	}
 
+	private void addDetectivesToWinners() {
+		for (ScotlandYardPlayer player : this.players) {
+			if (player.isDetective()) {
+				this.winners.add(player.colour());
+			}
+		}
+	}
+
 	@Override
 	public boolean isGameOver() {
-		// CASE: Mr.X is captured
 		// WINNERS: Detectives
+		// CASE: Mr.X is captured
+		// CASE: Mr.X is cornered
+		// CASE: Mr.X cannot move
 		if (locationOccupiedByDetective(this.players.get(0).location())){
-			for (ScotlandYardPlayer player : this.players) {
-				if (player.isDetective()) {
-					this.winners.add(player.colour());
-				}
-			}
+			addDetectivesToWinners();
 			return true;
 		}
-
-		// CASE: Mr.X is cornered
-		// WINNERS: Detectives
-		if (this.prevPlayer == this.players.size() - 1 && validMoves(this.players.get(0).colour()).size() == 1) {
-			ScotlandYardPlayer mrX = this.players.get(0);
-			if (mrX.hasTickets(BUS) || mrX.hasTickets(TAXI) || mrX.hasTickets(UNDERGROUND) || mrX.hasTickets(SECRET) || mrX.hasTickets(DOUBLE)) {
-				for (ScotlandYardPlayer player : this.players) {
-					if (player.isDetective()) {
-						this.winners.add(player.colour());
-					}
-				}
-				return true;
-			}
-		}
-
-		// CASE: Mr.X cannot move
-		// WINNERS: Detectives
 		if (this.prevPlayer == this.players.size() - 1) {
 			ScotlandYardPlayer mrX = this.players.get(0);
-			if (!(mrX.hasTickets(BUS) || mrX.hasTickets(TAXI) || mrX.hasTickets(UNDERGROUND) || mrX.hasTickets(SECRET) || mrX.hasTickets(DOUBLE))) {
-				for (ScotlandYardPlayer player : this.players) {
-					if (player.isDetective()) {
-						this.winners.add(player.colour());
-					}
-				}
+			boolean mrXHasTickets = mrX.hasTickets(BUS) || mrX.hasTickets(TAXI) || mrX.hasTickets(UNDERGROUND) || mrX.hasTickets(SECRET) || mrX.hasTickets(DOUBLE);
+			if (!mrXHasTickets) {
+				addDetectivesToWinners();
+				return true;
+			}
+			if (validMoves(this.players.get(0).colour()).size() == 1 && mrXHasTickets) {
+				addDetectivesToWinners();
 				return true;
 			}
 		}
 
-
-		// CASE: Mr.X is not captured in any round
 		// WINNERS: Mr.X
+		// CASE: Mr.X is not captured in any round
+		// CASE: All detectives are stuck
 		if (this.prevPlayer == this.players.size() - 1 && this.currentRound == this.rounds.size()) {
 			this.winners.add(this.players.get(0).colour());
 			return true;
 		}
-
-		// CASE: All detectives are stuck
-		// WINNERS: Mr.X
 		boolean allDetectivesStuck = true;
 		for (ScotlandYardPlayer player : this.players) {
 			if (player.isDetective()) {
