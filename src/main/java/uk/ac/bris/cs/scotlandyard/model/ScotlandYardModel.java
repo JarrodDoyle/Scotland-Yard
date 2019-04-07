@@ -291,11 +291,11 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		else {
 			secondMove = new TicketMove(player, move.secondMove().ticket(), firstMove.destination());
 		}
+		this.players.get(0).removeTicket(DOUBLE);
 		notifyOnMoveMade(new DoubleMove(player, firstMove, secondMove));
 
 		move.firstMove().visit(this);
 		move.secondMove().visit(this);
-		this.players.get(0).removeTicket(DOUBLE);
 	}
 
 	@Override
