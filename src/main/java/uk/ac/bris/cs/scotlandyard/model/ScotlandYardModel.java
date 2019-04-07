@@ -30,13 +30,13 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	private List<Boolean> rounds;
 	private Graph<Integer, Transport> graph;
 	private List<ScotlandYardPlayer> players;
-	private Integer currentPlayer;
-	private Integer prevPlayer;
-	private Integer currentRound;
-	private Integer prevMrXLocation;
-	private Set<Move> moves;
-	private Set<Colour> winners;
-	private List<Spectator> spectators;
+	private Integer currentPlayer = 0;
+	private Integer prevPlayer = 0;
+	private Integer currentRound = 0;
+	private Integer prevMrXLocation = 0;
+	private Set<Move> moves; new HashSet<Move>();
+	private Set<Colour> winners = new HashSet<Colour>();
+	private List<Spectator> spectators = new ArrayList<Spectator>();
 
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
@@ -81,13 +81,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 				throw new IllegalArgumentException("PlayerConfiguration missing one or more ticket type.");
 			}
 
-			if (config.colour.isDetective()) {
-				if (config.tickets.get(DOUBLE) > 0){
-					throw new IllegalArgumentException("Detective has DOUBLE");
-				}
-				if (config.tickets.get(SECRET) > 0){
-					throw new IllegalArgumentException("Detective has SECRET");
-				}
+			if (config.colour.isDetective() && (config.tickets.get(DOUBLE) > 0 || config.tickets.get(SECRET) > 0)){
+				throw new IllegalArgumentException("Detective has DOUBLE or SECRET tickets");
 			}
 		}
 
@@ -95,12 +90,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		for (PlayerConfiguration config : configurations) {
 			this.players.add(new ScotlandYardPlayer(config.player, config.colour, config.location, config.tickets));
 		}
-		this.currentPlayer = 0;
-		this.prevPlayer = 0;
-		this.prevMrXLocation = 0;
-		this.currentRound = 0;
-		this.winners = new HashSet<Colour>();
-		this.spectators = new ArrayList<Spectator>();
 	}
 
 	private Boolean locationOccupiedByDetective(Integer location) {
@@ -115,8 +104,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	private Set<Move> doubleMoves(Colour colour, Integer location, Ticket prevTicket, Map<Transport,Ticket> ticketMap) {
 		HashSet<Move> moves = new HashSet<Move>();
 		if (colour.isMrX() && getPlayerTickets(colour, DOUBLE).get() > 0) {
-			Collection<Edge<Integer,Transport>> edges = this.graph.getEdgesFrom(this.graph.getNode(location));
-			for (Edge<Integer,Transport> edge : edges) {
+			for (Edge<Integer,Transport> edge : this.graph.getEdgesFrom(this.graph.getNode(location))) {
 				Transport transport = edge.data();
 				Integer destination = edge.destination().value();
 				if (!locationOccupiedByDetective(destination) && this.currentRound < this.getRounds().size() - 1) {
@@ -137,12 +125,11 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	private Set<Move> validMoves(Colour colour) {
 		HashSet<Move> moves = new HashSet<Move>();
 		Integer location = getPlayer(colour).get().location();
-		Collection<Edge<Integer,Transport>> edges = this.graph.getEdgesFrom(this.graph.getNode(location));
 		Map<Transport,Ticket> ticketMap = Map.of(Transport.BUS, BUS,
 									Transport.TAXI, TAXI,
 									Transport.UNDERGROUND, UNDERGROUND,
 									Transport.FERRY, SECRET);
-		for (Edge<Integer,Transport> edge : edges) {
+		for (Edge<Integer,Transport> edge : this.graph.getEdgesFrom(this.graph.getNode(location))) {
 			Transport transport = edge.data();
 			Integer destination = edge.destination().value();
 			if (!locationOccupiedByDetective(destination)) {
@@ -164,7 +151,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	private Optional<ScotlandYardPlayer> getPlayer(Colour colour) {
 		for (ScotlandYardPlayer player : this.players) {
-			if (player.colour() == colour){
+			if (player.colour() == colour) {
 				return Optional.of(player);
 			}
 		}
@@ -190,17 +177,15 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		}
 	}
 	private void notifyOnRoundStarted() {
+		if (this.getRounds().get(this.currentRound)) {
+			this.prevMrXLocation = this.players.get(0).location();
+		}
 		this.currentRound += 1;
 		for (Spectator spectator : this.spectators) {
 			spectator.onRoundStarted(this, this.currentRound);
 		}
 	}
 
-	private void updateMrXLocation() {
-		if (this.getRounds().get(this.currentRound)) {
-			this.prevMrXLocation = this.players.get(0).location();
-		}
-	}
 
 	@Override
 	public void startRotate() {
@@ -256,7 +241,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	@Override
 	public void visit(PassMove move) {
 		if (this.players.get(this.prevPlayer).isMrX()) {
-			updateMrXLocation();
 			notifyOnRoundStarted();
 		}
 		notifyOnMoveMade(move);
@@ -269,7 +253,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		player.location(move.destination());
 
 		if (player.isMrX()) {
-			updateMrXLocation();
 			notifyOnRoundStarted();
 		}
 		else { this.players.get(0).addTicket(move.ticket()); }
@@ -369,21 +352,17 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			this.winners.add(this.players.get(0).colour());
 			return true;
 		}
-		boolean allDetectivesStuck = true;
-		for (ScotlandYardPlayer player : this.players) {
-			if (player.isDetective()) {
-				if (player.hasTickets(BUS) || player.hasTickets(TAXI) || player.hasTickets(UNDERGROUND)) {
-					allDetectivesStuck = false;
-					break;
+		allDetectivesStuck: {
+			for (ScotlandYardPlayer player : this.players) {
+				if (player.isDetective()) {
+					if (player.hasTickets(BUS) || player.hasTickets(TAXI) || player.hasTickets(UNDERGROUND)) {
+						break allDetectivesStuck;
+					}
 				}
 			}
-		}
-		if (allDetectivesStuck) {
 			this.winners.add(this.players.get(0).colour());
 			return true;
 		}
-
-		// NO WIN CONDITION MET
 		return false;
 	}
 
@@ -406,5 +385,4 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	public Graph<Integer, Transport> getGraph() {
 		return new ImmutableGraph<Integer, Transport>(this.graph);
 	}
-
 }
