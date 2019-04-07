@@ -255,24 +255,13 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	@Override
 	public void visit(DoubleMove move) {
 		Colour player = this.players.get(this.prevPlayer).colour();
-		TicketMove firstMove;
-		if (this.rounds.get(this.currentRound)) {
-			firstMove = move.firstMove();
-		}
-		else {
-			firstMove = new TicketMove(player, move.firstMove().ticket(), this.prevMrXLocation);
-		}
-		TicketMove secondMove;
-		if (this.rounds.get(this.currentRound + 1)) {
-			secondMove = move.secondMove();
-		}
-		else {
-			secondMove = new TicketMove(player, move.secondMove().ticket(), firstMove.destination());
-		}
+		Integer destination = (this.rounds.get(this.currentRound)) ? move.firstMove().destination() : this.prevMrXLocation;
+		TicketMove firstMove = new TicketMove(player, move.firstMove().ticket(), destination);
+		destination = (this.rounds.get(this.currentRound + 1)) ? move.secondMove().destination() : firstMove.destination();
+		TicketMove secondMove = new TicketMove(player, move.secondMove().ticket(), destination);
 
 		this.players.get(0).removeTicket(DOUBLE);
 		notifyOnMoveMade(new DoubleMove(player, firstMove, secondMove));
-
 		move.firstMove().visit(this);
 		move.secondMove().visit(this);
 	}
