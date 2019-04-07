@@ -35,7 +35,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	private Integer prevMrXLocation;
 	private Set<Move> moves;
 	private Set<Colour> winners;
-	private Boolean mrXStuck;
+	private List<Spectator> spectators;
 
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
@@ -126,6 +126,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		this.prevMrXLocation = 0;
 		this.currentRound = 0;
 		this.winners = new HashSet<Colour>();
+		this.spectators = new ArrayList<Spectator>();
 	}
 
 	private Boolean locationOccupiedByDetective(Integer location) {
@@ -209,6 +210,29 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		return Optional.empty();
 	}
 
+	private void notifyOnGameOver() {
+		for (Spectator spectator : this.spectators) {
+			spectator.onGameOver(this, this.winners);
+		}
+	}
+
+	private void notifyOnMoveMade(Move move) {
+		for (Spectator spectator : this.spectators) {
+			spectator.onMoveMade(this, move);
+		}
+	}
+
+	private void notifyOnRotationComplete() {
+		for (Spectator spectator : this.spectators) {
+			spectator.onRotationComplete(this);
+		}
+	}
+	private void notifyOnRoundStarted() {
+		for (Spectator spectator : this.spectators) {
+			spectator.onRoundStarted(this, this.currentRound);
+		}
+	}
+
 	@Override
 	public void startRotate() {
 		if (isGameOver()) {
@@ -222,6 +246,16 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 				player.player().makeMove(this, player.location(), this.moves, this);
 			}
 		}
+		if (this.currentPlayer == this.players.size()) {
+			if (isGameOver()){
+				this.currentPlayer = 0;
+				notifyOnGameOver();
+			}
+			else {
+				this.currentPlayer = 0;
+				notifyOnRotationComplete();
+			}
+		}
 	}
 
 	@Override
@@ -231,10 +265,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		requireNonNull(m);
 		// testCallbackWithIllegalMoveNotInGivenMovesWillThrow
 		if (!this.moves.contains(m)){
-			if (this.players.get(this.currentPlayer).location() == 94) {
-				throw new IllegalArgumentException(String.format("Blue can't do this move, possible moves are %s. tickets are %s", this.moves, this.players.get(this.currentPlayer).tickets()));
-			}
-			throw new IllegalArgumentException(String.format("Move not in MOVES, don't have ticket %s?", m.toString()));
+			throw new IllegalArgumentException(String.format("Move not in MOVES", m.toString()));
 		}
 		m.visit(this);
 		this.currentPlayer += 1;
@@ -242,6 +273,24 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public void visit(DoubleMove move) {
+		// notification
+		TicketMove firstMove;
+		if (this.rounds.get(this.currentRound)) {
+			firstMove = move.firstMove();
+		}
+		else {
+			firstMove = new TicketMove(getCurrentPlayer(), move.firstMove().ticket(), this.prevMrXLocation);
+		}
+		TicketMove secondMove;
+		if (this.rounds.get(this.currentRound + 1)) {
+			secondMove = move.secondMove();
+		}
+		else {
+			secondMove = new TicketMove(getCurrentPlayer(), move.secondMove().ticket(), firstMove.destination());
+		}
+		notifyOnMoveMade(new DoubleMove(getCurrentPlayer(), firstMove, secondMove));
+
+
 		move.firstMove().visit(this);
 		move.secondMove().visit(this);
 		this.players.get(0).removeTicket(DOUBLE);
@@ -254,7 +303,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 				this.prevMrXLocation = this.players.get(0).location();
 			}
 			this.currentRound += 1;
+			notifyOnRoundStarted();
 		}
+		notifyOnMoveMade(move);
 	}
 
 	@Override
@@ -262,33 +313,47 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 		ScotlandYardPlayer player = this.players.get(this.currentPlayer);
 		player.removeTicket(move.ticket());
 		player.location(move.destination());
+
 		if (player.isDetective()) {
 			this.players.get(0).addTicket(move.ticket());
+			notifyOnMoveMade(move);
 		}
 		else {
 			if (this.currentRound != this.getRounds().size() && this.getRounds().get(this.currentRound)) {
 				this.prevMrXLocation = this.players.get(0).location();
 			}
 			this.currentRound += 1;
+			notifyOnRoundStarted();
+			notifyOnMoveMade(new TicketMove(getCurrentPlayer(), move.ticket(), this.prevMrXLocation));
 		}
 	}
 
 	@Override
 	public void registerSpectator(Spectator spectator) {
-		// TODO
-		throw new RuntimeException("Implement me");
+		if (this.spectators.contains(spectator)) {
+			throw new IllegalArgumentException("Spectators already contains SPECTATOR");
+		}
+		// testRegisterNullSpectatorShouldThrow
+		this.spectators.add(requireNonNull(spectator));
 	}
 
 	@Override
 	public void unregisterSpectator(Spectator spectator) {
-		// TODO
-		throw new RuntimeException("Implement me");
+		// testUnregisterNullSpectatorShouldThrow
+		requireNonNull(spectator);
+		if (!this.spectators.contains(spectator)) {
+			throw new IllegalArgumentException("Spectators list does not contain SPECTATOR");
+		}
+		for (int i=0; i<this.spectators.size(); i++) {
+			if (this.spectators.get(i).equals(spectator)) {
+				this.spectators.remove(i);
+			}
+		}
 	}
 
 	@Override
 	public Collection<Spectator> getSpectators() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		return Collections.unmodifiableList(this.spectators);
 	}
 
 	@Override
