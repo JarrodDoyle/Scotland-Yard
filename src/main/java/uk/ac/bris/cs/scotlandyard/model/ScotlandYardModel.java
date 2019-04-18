@@ -10,6 +10,9 @@ import static java.util.Objects.requireNonNull;
 import static uk.ac.bris.cs.scotlandyard.model.Colour.BLACK;
 import static uk.ac.bris.cs.scotlandyard.model.Ticket.DOUBLE;
 import static uk.ac.bris.cs.scotlandyard.model.Ticket.SECRET;
+import static uk.ac.bris.cs.scotlandyard.model.Ticket.TAXI;
+import static uk.ac.bris.cs.scotlandyard.model.Ticket.BUS;
+import static uk.ac.bris.cs.scotlandyard.model.Ticket.UNDERGROUND;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,17 +36,79 @@ public class ScotlandYardModel implements ScotlandYardGame {
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
 			PlayerConfiguration... restOfTheDetectives) {
 
+//Creates an arraylist of all the detectives
+			ArrayList<PlayerConfiguration> detectives = new ArrayList<>();
+			detectives.add(firstDetective);
+			for (PlayerConfiguration detective : restOfTheDetectives) {
+				detectives.add(detective);
+			}
+
+// Check rounds are not empty and not null
 			if (rounds.isEmpty()) {
 				throw new IllegalArgumentException("Rounds are empty");
 			}
 			this.rounds = requireNonNull(rounds);
 
+//Check graph is not empty and not null
 			if (graph.isEmpty()) {
 				throw new IllegalArgumentException("Graph is empty");
 			}
 			this.graph = requireNonNull(graph);
 
-		// TODO
+//Check Mr X is black and not null
+			if (requireNonNull(mrX).colour.isDetective()) {
+				throw new IllegalArgumentException("MrX should be BLACK");
+			}
+
+//Check the detectives are not black and not null
+			for (PlayerConfiguration detective : detectives) {
+				if (requireNonNull(detective).colour.isMrX()) {
+					throw new IllegalArgumentException("Detective cannot be BLACK");
+				}
+			}
+
+//Check each detective's colour for collisions and
+//check each player's data for collisions (location overlap)
+		  ArrayList<Integer> locations = new ArrayList<Integer>();
+			ArrayList<Colour> colours = new ArrayList<>();
+
+			locations.add(mrX.location);
+			for (PlayerConfiguration detective : detectives) {
+				if (locations.contains(detective.location)) {
+						throw new IllegalArgumentException("Duplicate Player locations");
+				}
+				else {
+						locations.add(detective.location);
+				}
+
+				if (colours.contains(detective.colour)) {
+					throw new IllegalArgumentException("Duplicate Detective colours");
+				}
+				else {
+					colours.add(detective.colour);
+				}
+			}
+
+
+//Check that all detectives do not have secret tickets or double tickets, and they have tickets for taxi bus and underground.
+			for (PlayerConfiguration detective : detectives) {
+				if (detective.tickets.get(SECRET) > 0) {
+					throw new IllegalArgumentException("Detectives cannot have secret tickets");
+				}
+				if (detective.tickets.get(DOUBLE) > 0) {
+					throw new IllegalArgumentException("Detectives cannot have double tickets");
+				}
+				if ((detective.tickets.get(TAXI) == 0) || (detective.tickets.get(BUS) == 0) || (detective.tickets.get(UNDERGROUND) == 0)) {
+					throw new IllegalArgumentException("Detectives must have tickets for taxi, bus and underground");
+				}
+			}
+
+//Check that MrX has all types of ticket
+			if ((mrX.tickets.get(SECRET) == 0) || (mrX.tickets.get(DOUBLE) == 0) || (mrX.tickets.get(BUS) == 0) || (mrX.tickets.get(TAXI) == 0) || (mrX.tickets.get(UNDERGROUND) == 0)) {
+				throw new IllegalArgumentException("MrX must have all types of ticket");
+			}
+
+		// TODO from testGetRoundsMatchesSupplied
 	}
 
 	@Override
