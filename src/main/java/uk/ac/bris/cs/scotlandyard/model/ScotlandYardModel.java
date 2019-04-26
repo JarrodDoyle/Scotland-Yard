@@ -29,14 +29,14 @@ import uk.ac.bris.cs.gamekit.graph.Graph;
 public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, MoveVisitor {
 	private final List<Boolean> rounds;
 	private final Graph<Integer, Transport> graph;
-	private List<ScotlandYardPlayer> players;
+	private List<ScotlandYardPlayer> players = new ArrayList<>();
 	private Integer currentPlayer = 0;
 	private Integer prevPlayer = 0;
 	private Integer currentRound = NOT_STARTED;
 	private Integer prevMrXLocation = 0;
-	private Set<Move> moves = new HashSet<Move>();
-	private Set<Colour> winners = new HashSet<Colour>();
-	private List<Spectator> spectators = new ArrayList<Spectator>();
+	private Set<Move> moves = new HashSet<>();
+	private Set<Colour> winners = new HashSet<>();
+	private List<Spectator> spectators = new ArrayList<>();
 
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
@@ -84,7 +84,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 			// Make sure each player has appropriate tickets
 			Set<Ticket> keys = config.tickets.keySet();
-			List<Ticket> tickets = new ArrayList<Ticket>(List.of(BUS, DOUBLE, SECRET, TAXI, UNDERGROUND));
+			List<Ticket> tickets = new ArrayList<>(List.of(BUS, DOUBLE, SECRET, TAXI, UNDERGROUND));
 			if (!(keys.containsAll(tickets))) {
 				throw new IllegalArgumentException("PlayerConfiguration missing one or more ticket type.");
 			}
@@ -95,7 +95,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 		// Make each player config a ScotlandYardPlayer to ensure mutability
 		// without mutating the supplied configs
-		this.players = new ArrayList<ScotlandYardPlayer>();
 		for (PlayerConfiguration config : configurations) {
 			players.add(new ScotlandYardPlayer(config.player, config.colour, config.location, config.tickets));
 		}
@@ -112,8 +111,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	}
 
 	// Generates a set of valid double moves given a first move
-	private Set<Move> doubleMoves(Colour colour, Integer location, Ticket prevTicket, Map<Transport,Ticket> ticketMap) {
-		HashSet<Move> moves = new HashSet<Move>();
+	private Set<Move> doubleMoves(Colour colour, Integer location, Ticket prevTicket) {
+		HashSet<Move> moves = new HashSet<>();
 		// Check if the player can make double moves before generating anything
 		if (colour.isMrX() && getPlayerTickets(colour, DOUBLE).get() > 0 && currentRound < getRounds().size() - 1) {
 			// Iterate over the list of edges from the current position of the player
@@ -128,9 +127,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 					// sure the player has enough.
 					// A map is used to get the ticket type needed for each
 					// transport type.
-					Integer minimumTicketCount = (ticketMap.get(transport) == prevTicket) ? 1 : 0;
-					if (getPlayerTickets(colour, ticketMap.get(transport)).get() > minimumTicketCount) {
-						moves.add(new DoubleMove(colour, prevTicket, location, ticketMap.get(transport), destination));
+					Integer minimumTicketCount = (Ticket.fromTransport(transport) == prevTicket) ? 1 : 0;
+					if (getPlayerTickets(colour, Ticket.fromTransport(transport)).get() > minimumTicketCount) {
+						moves.add(new DoubleMove(colour, prevTicket, location, Ticket.fromTransport(transport), destination));
 					}
 					// Don't forget the possibility of using secret tickets. They
 					// can be used for any type of transport.
@@ -146,13 +145,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	// Generates the set of valid moves for the given colour. Includes doubles.
 	private Set<Move> validMoves(Colour colour) {
-		HashSet<Move> moves = new HashSet<Move>();
+		HashSet<Move> moves = new HashSet<>();
 		Integer location = getPlayer(colour).get().location();
-		// Map of transport type to ticket type.
-		Map<Transport,Ticket> ticketMap = Map.of(Transport.BUS, BUS,
-									Transport.TAXI, TAXI,
-									Transport.UNDERGROUND, UNDERGROUND,
-									Transport.FERRY, SECRET);
 		// Iterate over the list of edges from the current position of the player
 		// Each of these edges is a potential move that can be made
 		for (Edge<Integer,Transport> edge : graph.getEdgesFrom(graph.getNode(location))) {
@@ -163,15 +157,15 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 				// for the transport type of the move.
 				// Don't forget to generate the potential double moves from the
 				// position of the first move.
-				if (getPlayerTickets(colour, ticketMap.get(transport)).get() > 0) {
-					moves.add(new TicketMove(colour, ticketMap.get(transport), destination));
-					moves.addAll(doubleMoves(colour, destination, ticketMap.get(transport), ticketMap));
+				if (getPlayerTickets(colour, Ticket.fromTransport(transport)).get() > 0) {
+					moves.add(new TicketMove(colour, Ticket.fromTransport(transport), destination));
+					moves.addAll(doubleMoves(colour, destination, Ticket.fromTransport(transport)));
 				}
 				// Don't forget the possibility of using secret tickets. They
 				// can be used for any type of transport.
 				if (getPlayerTickets(colour, SECRET).get() > 0 && transport != Transport.FERRY) {
 					moves.add(new TicketMove(colour, SECRET, destination));
-					moves.addAll(doubleMoves(colour, destination, SECRET, ticketMap));
+					moves.addAll(doubleMoves(colour, destination, SECRET));
 				}
 			}
 		}
@@ -336,7 +330,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	@Override
 	// Return an immutable list of the player colours in the game
 	public List<Colour> getPlayers() {
-		List<Colour> colours = new ArrayList<Colour>();
+		List<Colour> colours = new ArrayList<>();
 		for (ScotlandYardPlayer player : players){
 			colours.add(player.colour());
 		}
@@ -445,6 +439,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public Graph<Integer, Transport> getGraph() {
-		return new ImmutableGraph<Integer, Transport>(graph);
+		return new ImmutableGraph<>(graph);
 	}
 }
