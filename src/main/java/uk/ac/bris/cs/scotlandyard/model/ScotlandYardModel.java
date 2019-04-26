@@ -125,8 +125,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 					// subtracted from the players ticket count. If a ticket type
 					// used in the first half will be used in the second, make
 					// sure the player has enough.
-					// A map is used to get the ticket type needed for each
-					// transport type.
 					Integer minimumTicketCount = (Ticket.fromTransport(transport) == prevTicket) ? 1 : 0;
 					if (getPlayerTickets(colour, Ticket.fromTransport(transport)).get() > minimumTicketCount) {
 						moves.add(new DoubleMove(colour, prevTicket, location, Ticket.fromTransport(transport), destination));
@@ -153,8 +151,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			Transport transport = edge.data();
 			Integer destination = edge.destination().value();
 			if (!locationOccupiedByDetective(destination)) {
-				// Map generated earlier is used to get the appropriate ticket
-				// for the transport type of the move.
 				// Don't forget to generate the potential double moves from the
 				// position of the first move.
 				if (getPlayerTickets(colour, Ticket.fromTransport(transport)).get() > 0) {
